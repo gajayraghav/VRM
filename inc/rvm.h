@@ -12,6 +12,7 @@ typedef struct LogItem
 {
         int id; 			// log id
         int tid; 			// transaction id
+        int segment_index;	// which segment
         string segName; 	 	// which segment
         int offset; 			// offset from the start
         int size; 			// size of the part of segment

@@ -10,12 +10,14 @@
 #include <unistd.h>
 #include <string>
 #include <sstream>
+using namespace std;
+
+///// git
 
 /*
  * rvm_t rvm_init(const char *directory) - Initialize the library with the specified directory as backing store.
  */
 
-using namespace std;
 
 int debugTraceFlag;
 static void debugTrace(string output){
@@ -52,6 +54,7 @@ rvm_t rvm_init(const char *directory)
 		}
 		else
 		{
+			TRACE(rvm, ">>>Init<<<\n");
 			printf("\n created the log & trace file \n");
 		}
 	}
@@ -73,6 +76,7 @@ rvm_t rvm_init(const char *directory)
 
 void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 {
+	TRACE(rvm, ">>>>> rvm_map\n");
 	printf("\n in map \n");
 	// find if the segment already exists.
 	int segment_index=0;
@@ -84,7 +88,7 @@ void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 			found = true;
 			if(rvm->memSegs[segment_index]->mapped == 1)
 			{
-				perror("\n abort \n");
+				perror("\n abort - Already Mapped\n");
 				return (void*) 0;
 			}
 			break;
@@ -104,6 +108,7 @@ void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 			rvm->storage_size+=rvm->memSegs[segment_index]->Segmentsize;
 			rvm->memSegs[segment_index]->mapped = 1;
 			printf("\n storage size - %ld \n", rvm->storage_size);
+
 		}
 		else if (rvm->memSegs[segment_index]->Segmentsize > size_to_create)
 		{
@@ -118,7 +123,7 @@ void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 			rvm->memSegs[segment_index]->mapped = 1;
 			printf("\n storage size - %ld \n", rvm->storage_size);
 		}
-		return ((void*) rvm->memSegs[segment_index]->fsegment);
+		return ((void*) rvm->memSegs[rvm->memSeg_count-1]->segAddr); //rvm->memSegs[segment_index]->fsegment);
 	}
 	else
 	{		
@@ -152,7 +157,7 @@ void rvm_unmap(rvm_t rvm, void *segbase)
 	bool found = false;
 	for (segment_index=0;segment_index<rvm->memSeg_count;segment_index++)
 	{
-		if(rvm->memSegs[segment_index]->segName == segbase)
+		if(!strcmp(rvm->memSegs[segment_index]->segAddr, (char*)segbase))
 		{
 			found = true;
 			break;
@@ -169,6 +174,7 @@ void rvm_unmap(rvm_t rvm, void *segbase)
 			rvm->memSegs[segment_index]->mapped = 0;
 			fclose(rvm->memSegs[segment_index]->fsegment);
 			rvm->memSegs[segment_index]->fsegment = NULL;
+			// need something related to the segAddr. make it null ?
 		}
 	}
 	else
@@ -177,9 +183,51 @@ void rvm_unmap(rvm_t rvm, void *segbase)
 	}
 }
 
+/*
+ * void rvm_destroy(rvm_t rvm, const char *segname) - destroy a segment completely, erasing its backing store.
+ * This function should not be called on a segment that is currently mapped.
+ */
+
 void rvm_destroy(rvm_t rvm, const char *segname)
 {
-
+	int segment_index = 0;
+	bool found = false;
+	for (segment_index = 0; segment_index < rvm->memSeg_count; segment_index++) {
+		if (!strcmp(rvm->memSegs[segment_index]->segName, segname)) {
+			found = true;
+			break;
+		}
+	}
+	printf("\n hello \n");
+	printf("\n found %s",rvm->memSegs[segment_index]->segName);
+	if (found == true)
+	{
+		if (rvm->memSegs[segment_index]->mapped == 0)
+		{
+			rvm->storage_size -= rvm->memSegs[segment_index]->Segmentsize;
+			rvm->memSegs[segment_index]->mapped = 0;
+			if (rvm->memSegs[segment_index]->fsegment != NULL)
+			{
+				perror("File is open elsewhere");
+				fclose(rvm->memSegs[segment_index]->fsegment);
+			}
+			rvm->memSegs[segment_index]->fsegment = NULL;
+			rvm->memSegs[segment_index]->dirty = 0;
+			rvm->memSegs[segment_index]->Segmentsize = 0;
+			rvm->memSeg_count--;
+			printf("\n to remove -%s \n", (rvm->backingStore + string(segname)+ ".txt").c_str());
+			unlink((rvm->backingStore + string(segname)+".txt").c_str());
+			printf("\n removed %d ", (int) rvm->memSeg_count);
+		}
+		else
+		{
+			perror("\n cant destroy a mapped segment. Need to unmap before destroy");
+		}
+	}
+	else
+	{
+		perror("\n cant destroy a non existing segment");
+	}
 }
 
 trans_t rvm_begin_trans(rvm_t rvm, int numsegs, void **segbases)
@@ -329,7 +377,7 @@ int write_log(rvm_t rvm, logitem log)
 {
 	string tolog = "";
 	std::stringstream out;
-//	out << log.id << "~~" << log.tid << "~~" << log.segName << "~~" << log.offset << "~~" << log.size << "~~" << log.data<<"\n";
+	out << log.id << "~~" << log.tid << "~~" << log.segment_index << "~~" << log.offset << "~~" << log.size << "~~";//  << log.data<<"\n"; ( who to write data )
 	//sprintf(tolog.c_str(), "%d~~%d~~%d~~%d~~%d~~%s\n", log.id, log.tid, log.segment_index, log.offset, log.size, log.data);
 	if(rvm->flog != NULL)
 	{
@@ -346,4 +394,12 @@ int read_log(rvm_t rvm, vector <logitem> log)
 	return 0;
 }
 
+int TRACE(rvm_t rvm,  const char * trace_stm)
+{
+	if(rvm->ftrace != NULL)
+	{
+		fprintf(rvm->ftrace, trace_stm);
+	}
+	return 0;
+}
 

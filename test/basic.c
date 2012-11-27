@@ -83,11 +83,12 @@ int main(int argc, char **argv)
 
      proc2();
 */
-     rvm_t rvm = rvm_init("rvm_segments");
-     FILE *segs = (FILE *) rvm_map(rvm, "testseg", 10000);
-     segs = (FILE *) rvm_map(rvm, "tests", 1000);
-     segs = (FILE *) rvm_map(rvm, "tests", 1020);
-     segs = (FILE *) rvm_map(rvm, "te", 9000);
+     rvm_t rvm = rvm_init("backingStore");
+     void *segs =  rvm_map(rvm, "testseg", 10000);
+     char *towrite = (char*) segs;
+     segs =  rvm_map(rvm, "tests", 1000);
+     segs =  rvm_map(rvm, "tests", 1020);
+     segs =  rvm_map(rvm, "te", 9000);
 
 
 
