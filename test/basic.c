@@ -83,13 +83,13 @@ int main(int argc, char **argv)
 
      proc2();
 */
-     rvm_t rvm = rvm_init("ajay");
+     rvm_t rvm = rvm_init("rvm_segments");
      FILE *segs = (FILE *) rvm_map(rvm, "testseg", 10000);
      segs = (FILE *) rvm_map(rvm, "tests", 1000);
      segs = (FILE *) rvm_map(rvm, "tests", 1020);
      segs = (FILE *) rvm_map(rvm, "te", 9000);
-     rvm_unmap(rvm, (void*)"testseg");
-     rvm_destroy(rvm, "testseg");
+
+
 
 
      return 0;
