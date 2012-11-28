@@ -87,14 +87,12 @@ rvm_t rvm_init(const char *directory)
 			{
 			    printf ("%s\n", ent->d_name);
 			    string sub = fname.substr(0, len-4);
-			    FILE *fp = fopen((rvm->backingStore+fname).c_str(), "a");
 			    struct stat st1;
 			    stat((rvm->backingStore+fname).c_str(), &st1);
 			    int size = st1.st_size;
 			    printf("\n File Length - of %s is %d",sub.c_str(), size);
 			    rvm_map(rvm, sub.c_str(), size );
 			    rvm->memSegs[rvm->memSeg_count-1]->mapped=0;
-			    printf("\n count = %d \n", rvm->memSeg_count);
 		    }
 		  }
 		  closedir (dir);
@@ -186,8 +184,8 @@ void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 			rvm->memSegs[segment_index]->mapped = 1;
 			printf("\n storage size - %ld \n", rvm->storage_size);
 		}
-		int index=0;
-//		while( rvm->)
+		int sizeread = fread(rvm->memSegs[segment_index]->segAddr, 1, size_to_create,rvm->memSegs[segment_index]->fsegment);
+		rewind(rvm->memSegs[segment_index]->fsegment);
 		return ((void*) rvm->memSegs[segment_index]->segAddr); //rvm->memSegs[segment_index]->fsegment);
 	}
 	else
@@ -196,9 +194,10 @@ void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 		printf("\n create the new segment - %d \n", (int) rvm->memSeg_count );
 		if (rvm->memSeg_count != MAX_SEGMENTS)
 		{
-			rvm->memSegs[rvm->memSeg_count]->fsegment = fopen((rvm->backingStore + string(segname)+".txt").c_str(), "w");
+			rvm->memSegs[rvm->memSeg_count]->fsegment = fopen((rvm->backingStore + string(segname)+".txt").c_str(), "a");
 			if(rvm->memSegs[rvm->memSeg_count]->fsegment != NULL)
 			{
+				rewind(rvm->memSegs[rvm->memSeg_count]->fsegment);
 				strcpy(rvm->memSegs[rvm->memSeg_count]->segName, segname);
 				rvm->memSegs[rvm->memSeg_count]->dirty = 0;
 				rvm->memSegs[rvm->memSeg_count]->Segmentsize = size_to_create;

@@ -38,9 +38,10 @@ void proc1()
 
      rvm_commit_trans(trans);
      
+
      printf("\n proc 1 end \n");
 
-     abort();
+    // abort();
 
 }
 
@@ -55,9 +56,9 @@ void proc2()
      rvm = rvm_init("rvm_segments");
 
      segs[0] = (char *) rvm_map(rvm, "testseg", 10000);
-     printf("\n %s\n", segs[0]);
+     //printf("\n %s\n", segs[0]);
 
-     /*if(strcmp(segs[0], TEST_STRING)) {
+     if(strcmp(segs[0], TEST_STRING)) {
 	  printf("ERROR: first hello not present \n");//, segs[0]);
 	  exit(2);
      }
@@ -65,7 +66,7 @@ void proc2()
 	  printf("ERROR: second hello not present\n");
 	  exit(2);
      }
-*/
+
      printf("OK\n");
      exit(0);
 }
@@ -97,6 +98,7 @@ int main(int argc, char **argv)
 
      waitpid(pid, NULL, 0);
 
+     //system("cat rvm_segments/testseg.txt");
      proc2();
 
 /*
