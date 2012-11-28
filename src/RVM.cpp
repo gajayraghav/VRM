@@ -24,7 +24,7 @@ using namespace std;
 int debugTraceFlag;
 static void debugTrace(string output){
 	if (debugTraceFlag){
-		fprintf(stderr, "%s\n", output.c_str());
+		fprintf(stdout, "%s\n", output.c_str());
 	}
 }
 
@@ -221,10 +221,9 @@ void rvm_destroy(rvm_t rvm, const char *segname)
 			break;
 		}
 	}
-	printf("\n hello \n");
-	printf("\n found %s",rvm->memSegs[segment_index]->segName);
 	if (found == true)
 	{
+		printf("\n found %s",rvm->memSegs[segment_index]->segName);
 		if (rvm->memSegs[segment_index]->mapped == 0)
 		{
 			rvm->storage_size -= rvm->memSegs[segment_index]->Segmentsize;
@@ -259,11 +258,13 @@ trans_t rvm_begin_trans(rvm_t rvm, int numsegs, void **segbases)
 	newTrans->rvm = rvm;
 	int mSegsLocked= 0, counter;
 	int index = 0;
+	printf("\n in begin trans \n");
 	debugTrace("beginning transaction with numsegs " + numsegs);
 	while(rvm->memSegs[index] != rvm->memSegs[MAX_SEGMENTS-1]){
 		for (counter = 0; counter < numsegs; counter++){//for each segbase
-			if (*(segbases + counter) == rvm->memSegs[index]->fsegment){
+			if (*(segbases + counter) == rvm->memSegs[index]->segAddr){
 				//if the same, then lock it
+				printf("\n found segment %s",rvm->memSegs[index]->segName );
 				if (flock((int)fileno(rvm->memSegs[index]->fsegment), LOCK_EX || LOCK_NB) == -1){
 					debugTrace("already locked " + (string)rvm->memSegs[index]->segName);
 					return (trans_t) -1;
@@ -281,36 +282,45 @@ trans_t rvm_begin_trans(rvm_t rvm, int numsegs, void **segbases)
 		return (trans_t)-1;
 	}
 	debugTrace("returning newTrans");
+	printf("\n done begin trans \n");
 	return newTrans; 
 }
 
 void rvm_about_to_modify(trans_t tid, void *segbase, int offset, int size)
 {
 	memSeg * currmSeg;
-	char tempAboutToModify[1024];
+	char *tempAboutToModify;
+	printf("\n 1\n");
 	transItem *newtransItem = new transItem;
 	if (tid->segBases.find(segbase) == tid->segBases.end()){
+		printf("\n couldn't find the seg base \n");
 		debugTrace("specified segbase does not exist");
 		abort();
 	}
+	printf("\n found %s\n", tid->segBases[segbase]->segName);
 	//specify that the segment is in a transaction
 	currmSeg = tid->segBases[segbase];
 	newtransItem->segmentinProcess = currmSeg;
 	newtransItem->transactionSize = size;
 	newtransItem->offset = offset;
 	currmSeg->dirty++;
-	sprintf(tempAboutToModify, "%s/%d/%d/%s/\n", currmSeg->segName, offset, size, (char *)segbase+offset);
+	printf("\n 3\n");
+	tempAboutToModify = (char *) malloc((size+1));
+	memset(tempAboutToModify, 0, size+1);
+	memcpy(tempAboutToModify, currmSeg->segAddr, size);
+	printf("\n3a");
+	printf("\n backup - %s", tempAboutToModify);
+//	sprintf(tempAboutToModify, "%s/%d/%d/%s/\n", currmSeg->segName, offset, size, (char *)segbase+offset);
 	currmSeg->aboutToModify.insert(currmSeg->aboutToModify.end(), (string)tempAboutToModify);
-	flock(fileno(tid->rvm->flog), LOCK_EX);
-	if (fprintf(tid->rvm->flog, "about_to_modify/%s/%d/%d/", currmSeg->segName,offset, size) < 0){
+	/*if (fprintf(tid->rvm->flog, "about_to_modify/%s/%d/%d/", currmSeg->segName,offset, size) < 0){
 		perror("fprintf error");
 		abort();
 	}
-	fwrite((char *)segbase + offset , 1, size, tid->rvm->flog);
-	fprintf(tid->rvm->flog, "\n");
+	*/printf("\n 4\n");
+	//fwrite((char *)segbase + offset , 1, size, tid->rvm->flog);
+	//fprintf(tid->rvm->flog, "\n");
 	//write to disk
-	fdatasync(fileno(tid->rvm->flog));
-	flock(fileno(tid->rvm->flog), LOCK_UN);
+	//fdatasync(fileno(tid->rvm->flog));
 	tid->action.push_back(newtransItem);
 	return;
 
@@ -319,10 +329,7 @@ void rvm_about_to_modify(trans_t tid, void *segbase, int offset, int size)
 void rvm_commit_trans(trans_t tid)
 {
 	vector<transItem *>::iterator it = tid->action.begin();
-	flock(fileno(tid->rvm->flog), LOCK_EX);
-	if (flock < 0){
-		perror("flock error");
-	}
+
 	while (it != tid->action.end()){
 		if ((*it)->segmentinProcess->dirty){
 			if (fprintf(tid->rvm->flog, "commit_data/%s/%d/%d/", (*it)->segmentinProcess->segName, (*it)->offset, (*it)->transactionSize ) < 0){
@@ -346,9 +353,9 @@ void rvm_commit_trans(trans_t tid)
 
 	}
 	//write to disk
-	fdatasync(fileno(tid->rvm->flog));
+//	fdatasync(fileno(tid->rvm->flog));
 	fwrite("!", 1, 1, tid->rvm->flog);
-	flock(fileno(tid->rvm->flog), LOCK_UN);
+	//flock(fileno(tid->rvm->flog), LOCK_UN);
 	//flock((*it)->transmSeg->fd, LOCK_UN);
 	return;
 

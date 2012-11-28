@@ -25,17 +25,19 @@ void proc1()
      
      trans = rvm_begin_trans(rvm, 1, (void **) segs);
      
+
      rvm_about_to_modify(trans, segs[0], 0, 100);
      sprintf(segs[0], TEST_STRING);
      
-     rvm_about_to_modify(trans, segs[0], OFFSET2, 100);
+    /* rvm_about_to_modify(trans, segs[0], OFFSET2, 100);
      sprintf(segs[0]+OFFSET2, TEST_STRING);
-     
+    */
      rvm_commit_trans(trans);
      
      
 
      abort();
+
 }
 
 
@@ -68,6 +70,8 @@ int main(int argc, char **argv)
 
      //rvm_verbose(1);
 
+     proc1();
+
 /*
      pid = fork();
      if(pid < 0) {
@@ -83,6 +87,8 @@ int main(int argc, char **argv)
 
      proc2();
 */
+
+/*
      char *segs[3];
      rvm_t rvm = rvm_init("backingStore");
      segs[0] =  (char *)rvm_map(rvm, "testseg", 10000);
@@ -95,6 +101,7 @@ int main(int argc, char **argv)
      rvm_unmap(rvm, segs[1]);
      segs[1] =  (char *)rvm_map(rvm, "tests", 1020);
     // printf("\n~%s~\n", towrite);
+*/
 
 
 
