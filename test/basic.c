@@ -13,9 +13,8 @@
 
 /* proc1 writes some data, commits it, then exits */
 void proc1() 
-{		 
-	printf("\n proc 1 start\n");
-	rvm_t rvm;
+{
+     rvm_t rvm;
      trans_t trans;
      char* segs[1];
      
@@ -26,40 +25,29 @@ void proc1()
      
      trans = rvm_begin_trans(rvm, 1, (void **) segs);
      
-
      rvm_about_to_modify(trans, segs[0], 0, 100);
      sprintf(segs[0], TEST_STRING);
-     printf("\n____________________ \n");
-     printf("\n %s", segs[0]);
-     printf("\n____________________ \n");
-
+     
      rvm_about_to_modify(trans, segs[0], OFFSET2, 100);
      sprintf(segs[0]+OFFSET2, TEST_STRING);
-
-     rvm_commit_trans(trans);
      
+     rvm_commit_trans(trans);
 
-     printf("\n proc 1 end \n");
-
-    // abort();
-
+     abort();
 }
 
 
 /* proc2 opens the segments and reads from them */
 void proc2() 
 {
-	 printf("\n proc 2 start \n");
      char* segs[1];
      rvm_t rvm;
      
      rvm = rvm_init("rvm_segments");
 
      segs[0] = (char *) rvm_map(rvm, "testseg", 10000);
-     //printf("\n %s\n", segs[0]);
-
      if(strcmp(segs[0], TEST_STRING)) {
-	  printf("ERROR: first hello not present \n");//, segs[0]);
+	  printf("ERROR: first hello not present\n");
 	  exit(2);
      }
      if(strcmp(segs[0]+OFFSET2, TEST_STRING)) {
@@ -76,16 +64,6 @@ int main(int argc, char **argv)
 {
      int pid;
 
-     //rvm_verbose(1);
-
-
-/*
-     proc1();
-     proc2();
-*/
-
-
-
      pid = fork();
      if(pid < 0) {
 	  perror("fork");
@@ -98,27 +76,7 @@ int main(int argc, char **argv)
 
      waitpid(pid, NULL, 0);
 
-     //system("cat rvm_segments/testseg.txt");
      proc2();
-
-/*
-     char *segs[3];
-     rvm_t rvm = rvm_init("backingStore");
-     segs[0] =  (char *)rvm_map(rvm, "testseg", 10000);
-     segs[1] =  (char *)rvm_map(rvm, "tests", 1000);
-     segs[2] =  (char *)rvm_map(rvm, "te", 9000);
-     printf("\n%s\n", segs[1]);
-     sprintf(segs[1] + 10,TEST_STRING );
-     printf("\n~%s~\n", segs[1]);
-    // sprintf(towrite + 20,TEST_STRING );
-     rvm_unmap(rvm, segs[1]);
-     segs[1] =  (char *)rvm_map(rvm, "tests", 1020);
-    // printf("\n~%s~\n", towrite);
-*/
-
-
-
-
 
      return 0;
 }

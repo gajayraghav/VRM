@@ -158,7 +158,7 @@ void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 			rvm->memSegs[segment_index]->segAddr = (char *) realloc(rvm->memSegs[segment_index]->segAddr, (size_to_create - rvm->memSegs[segment_index]->Segmentsize));
 			for (int i = rvm->memSegs[segment_index]->Segmentsize;i < size_to_create; i++)
 			{
-				rvm->memSegs[segment_index]->segAddr[i] = '.';
+				rvm->memSegs[segment_index]->segAddr[i] = 0;
 			}
 			//rvm->memSegs[segment_index]->segAddr[size_to_create] = '\0';
 			//int fd = fileno(rvm->memSegs[segment_index]->fsegment); // file descriptor
@@ -185,8 +185,11 @@ void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 			printf("\n storage size - %ld \n", rvm->storage_size);
 		}
 		int sizeread = fread(rvm->memSegs[segment_index]->segAddr, 1, size_to_create,rvm->memSegs[segment_index]->fsegment);
+		printf("\n size read = %d", sizeread);
 		rewind(rvm->memSegs[segment_index]->fsegment);
 		return ((void*) rvm->memSegs[segment_index]->segAddr); //rvm->memSegs[segment_index]->fsegment);
+		//rewind (rvm->memSegs[segment_index]->segAddr);
+		printf("\n ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%s~~~~~~~~~~~~~~~~~~~``",rvm->memSegs[segment_index]->segAddr);
 	}
 	else
 	{		
@@ -194,7 +197,7 @@ void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 		printf("\n create the new segment - %d \n", (int) rvm->memSeg_count );
 		if (rvm->memSeg_count != MAX_SEGMENTS)
 		{
-			rvm->memSegs[rvm->memSeg_count]->fsegment = fopen((rvm->backingStore + string(segname)+".txt").c_str(), "a");
+			rvm->memSegs[rvm->memSeg_count]->fsegment = fopen((rvm->backingStore + string(segname)+".txt").c_str(), "a+");
 			if(rvm->memSegs[rvm->memSeg_count]->fsegment != NULL)
 			{
 				rewind(rvm->memSegs[rvm->memSeg_count]->fsegment);
@@ -205,8 +208,8 @@ void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 				rvm->memSegs[segment_index]->mapped = 1;
 				printf("\n storage size - %ld \n", rvm->storage_size);
 				rvm->memSegs[rvm->memSeg_count]->segAddr = (char *) malloc (size_to_create+1);
-				memset (rvm->memSegs[rvm->memSeg_count]->segAddr, '.', size_to_create);
-				rvm->memSegs[rvm->memSeg_count]->segAddr[size_to_create] = '\0';
+				memset (rvm->memSegs[rvm->memSeg_count]->segAddr, 0, size_to_create);
+				//rvm->memSegs[rvm->memSeg_count]->segAddr[size_to_create] = '\0';
 				rvm->memSeg_count = rvm->memSeg_count + 1;
 				return ((void*) rvm->memSegs[rvm->memSeg_count-1]->segAddr);
 			}
@@ -375,51 +378,46 @@ void rvm_about_to_modify(trans_t tid, void *segbase, int offset, int size)
 }
 
 void rvm_commit_trans(trans_t tid)
-{
-	printf("\n in commit \n");
-	vector<transItem *>::iterator it = tid->action.begin();
+{	vector<transItem *>::iterator it = tid->action.begin();
 
-	while (it != tid->action.end()){
-		if ((*it)->segmentinProcess->dirty){
-			if (tid->rvm->flog != NULL)
-			{
-				if (fprintf(tid->rvm->flog, "commit_data/%s/%d/%d/", (*it)->segmentinProcess->segName, (*it)->offset, (*it)->transactionSize ) < 0){
-					printf("\n failure to log \n");
-					abort();
-				}
+while (it != tid->action.end()){
+	if ((*it)->segmentinProcess->dirty){
+		if (tid->rvm->flog != NULL)
+		{
+			(*it)->segmentinProcess->logItem.offset  = (*it)->offset;
+			(*it)->segmentinProcess->logItem.size = (*it)->transactionSize;
+			(*it)->segmentinProcess->logItem.segName= (*it)->segmentinProcess->segName;
+			(*it)->segmentinProcess->logItem.data = (*it)->segmentinProcess->segAddr+(*it)->offset;
+			if (fprintf(tid->rvm->flog, "commit_data/%s/%d/%d/", (*it)->segmentinProcess->segName, (*it)->offset, (*it)->transactionSize ) < 0){
+				printf("\n failure to log \n");
+				abort();
 			}
-			else
-			{
-				printf("\n log pointer is null");
-			}
-/*
-                        (*it)->segmentinProcess->logItem.offset  = (*it)->offset;
-                        (*it)->segmentinProcess->logItem.size = (*it)->transactionSize;
-                        (*it)->segmentinProcess->logItem.segName = (string)(*it)->segmentinProcess->segName;
-                        printf("\n 2a \n");
-                        (*it)->segmentinProcess->logItem.data[(*it)->segmentinProcess->segName] = (string)((*it)->segmentinProcess->segAddr+((*it)->offset));
-*/
-
-            fwrite((void*)((char*)(*it)->segmentinProcess->segAddr + (*it)->offset),
-					1,
-					(*it)->transactionSize,
-					tid->rvm->flog);
-			fprintf(tid->rvm->flog, "\n");
-			(*it)->segmentinProcess->dirty = 0;
-			fwrite((*it)->segmentinProcess->segAddr, 1, (*it)->segmentinProcess->Segmentsize, (*it)->segmentinProcess->fsegment);
-
 		}
+		else
+		{
+			printf("\n log pointer is null");
+		}
+		printf("1 here\n");
+		fwrite((void*)((char*)(*it)->segmentinProcess->segAddr + (*it)->offset),
+				1,
+				(*it)->transactionSize,
+				tid->rvm->flog);
+		printf("2 here\n");
+		fprintf(tid->rvm->flog, "\n");
+		(*it)->segmentinProcess->dirty = 0;
+		printf("3 here\n");
+		fwrite((*it)->segmentinProcess->segAddr, 1, (*it)->segmentinProcess->Segmentsize, (*it)->segmentinProcess->fsegment);
 
-		delete *it;
-		it = tid->action.erase(it);
-
+		printf("4 here\n");
 	}
-	//write to disk
-//	fdatasync(fileno(tid->rvm->flog));
-//	fwrite("!", 1, 1, tid->rvm->flog);
-	//flock(fileno(tid->rvm->flog), LOCK_UN);
-	//flock((*it)->transmSeg->fd, LOCK_UN);
-	return;
+
+	delete *it;
+	it = tid->action.erase(it);
+
+	printf("5 here\n");
+}
+printf("6 here\n");
+return;
 
 }
 

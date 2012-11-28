@@ -14,10 +14,10 @@ typedef struct LogItem
         int id; 			// log id
         int tid; 			// transaction id
         int segment_index;	// which segment
-        string segName; 	 	// which segment
+        char *segName; 	 	// which segment
         int offset; 			// offset from the start
         int size; 			// size of the part of segment
-        map<string, string> data;       // no sure if we need it. still.....
+        char *data;       // no sure if we need it. still.....
 }logitem;
 
 // Segment strucutre
