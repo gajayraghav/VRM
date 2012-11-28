@@ -23,7 +23,7 @@ typedef struct LogItem
 // Segment strucutre
 struct memSegment {
   char segName[20]; 			// seg name
-  void* segAddr;
+  char* segAddr;
   logitem logItem;
   vector<string> aboutToModify;         // about_to_modify        
   FILE * fsegment; 			// file pointer to the segment in the backing store
