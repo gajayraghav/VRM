@@ -14,7 +14,8 @@
 /* proc1 writes some data, commits it, then exits */
 void proc1() 
 {		 
-     rvm_t rvm;
+	printf("\n proc 1 start\n");
+	rvm_t rvm;
      trans_t trans;
      char* segs[1];
      
@@ -28,13 +29,16 @@ void proc1()
 
      rvm_about_to_modify(trans, segs[0], 0, 100);
      sprintf(segs[0], TEST_STRING);
-     
-    /* rvm_about_to_modify(trans, segs[0], OFFSET2, 100);
+     printf("\n____________________ \n");
+     printf("\n %s", segs[0]);
+     printf("\n____________________ \n");
+
+     rvm_about_to_modify(trans, segs[0], OFFSET2, 100);
      sprintf(segs[0]+OFFSET2, TEST_STRING);
-    */
+
      rvm_commit_trans(trans);
      
-     
+     printf("\n proc 1 end \n");
 
      abort();
 
@@ -44,21 +48,24 @@ void proc1()
 /* proc2 opens the segments and reads from them */
 void proc2() 
 {
+	 printf("\n proc 2 start \n");
      char* segs[1];
      rvm_t rvm;
      
      rvm = rvm_init("rvm_segments");
 
      segs[0] = (char *) rvm_map(rvm, "testseg", 10000);
-     if(strcmp(segs[0], TEST_STRING)) {
-	  printf("ERROR: first hello not present\n");
+     printf("\n %s\n", segs[0]);
+
+     /*if(strcmp(segs[0], TEST_STRING)) {
+	  printf("ERROR: first hello not present \n");//, segs[0]);
 	  exit(2);
      }
      if(strcmp(segs[0]+OFFSET2, TEST_STRING)) {
 	  printf("ERROR: second hello not present\n");
 	  exit(2);
      }
-
+*/
      printf("OK\n");
      exit(0);
 }
@@ -70,9 +77,14 @@ int main(int argc, char **argv)
 
      //rvm_verbose(1);
 
-     proc1();
 
 /*
+     proc1();
+     proc2();
+*/
+
+
+
      pid = fork();
      if(pid < 0) {
 	  perror("fork");
@@ -86,7 +98,6 @@ int main(int argc, char **argv)
      waitpid(pid, NULL, 0);
 
      proc2();
-*/
 
 /*
      char *segs[3];

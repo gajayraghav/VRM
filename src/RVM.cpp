@@ -4,6 +4,8 @@
 #include <string.h>
 #include "../inc/rvm.h"
 
+#include <dirent.h>
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>
@@ -34,6 +36,7 @@ rvm_t rvm_init(const char *directory)
 	struct stat st = {0};
 
 	if (stat(directory, &st) == -1) {
+
 		mkdir(directory, 0766);
 		rvm->backingStore = directory;
 		rvm->backingStore.append("/");
@@ -41,6 +44,7 @@ rvm_t rvm_init(const char *directory)
 		rvm->memSeg_count = 0;
 		rvm->flog = fopen((rvm->backingStore+string("transaction.log")).c_str(), "w");
 		rvm->ftrace = fopen((rvm->backingStore+string("trace.log")).c_str(), "w");
+		printf("\n %s",(rvm->backingStore+string("trace.log")).c_str() );
 		for (int i =0; i< MAX_SEGMENTS; i++)
 		{
 			rvm->memSegs[i] = (memSeg*)malloc(sizeof(memSeg));
@@ -50,23 +54,65 @@ rvm_t rvm_init(const char *directory)
 			rvm->memSegs[i]->Segmentsize = 0 ;
 			rvm->memSegs[i]->fsegment = NULL;
 		}
-		if ((rvm->flog == NULL)|| (rvm->ftrace == NULL))
-		{
-			perror("rvm_init: Unable to create the log/trace file");
-		}
-		else
-		{
-			TRACE(rvm, ">>>Init<<<\n");
-			printf("\n created the log & trace file \n");
-		}
 	}
 	else
 	{
-		perror("rvm_init: Directory already exists");
-		rvm->backingStore = "dirExistS"; // E and S in cap to avoid case when user creates direxists as a dir input
+		printf("\n rvm_init: Directory already exists \n");
+		rvm->backingStore = directory;
+		rvm->backingStore.append("/");
+		rvm->storage_size = 0;
+		rvm->memSeg_count = 0;
+		rvm->flog = fopen((rvm->backingStore+string("transaction.log")).c_str(), "w");
+		rvm->ftrace = fopen((rvm->backingStore+string("trace.log")).c_str(), "w");
+		//printf("\n %s",(rvm->backingStore+string("trace.log")).c_str() );
+		for (int i =0; i< MAX_SEGMENTS; i++)
+		{
+			rvm->memSegs[i] = (memSeg*)malloc(sizeof(memSeg));
+			rvm->memSegs[i]->mapped = 0;
+			rvm->memSegs[i]->dirty = 0;
+			//rvm->memSegs[i]->segName = " " ;
+			rvm->memSegs[i]->Segmentsize = 0 ;
+			rvm->memSegs[i]->fsegment = NULL;
+		}
+		DIR *dir;
+		struct dirent *ent;
+		dir = opendir(directory);
+		if (dir != NULL)
+		{
+		  while ((ent = readdir (dir)) != NULL)
+		  {
+			string fname = string(ent->d_name);
+			int len = fname.length();
+			if((ent->d_name[len-1] == 't')&&(ent->d_name[len-2] == 'x')&&(ent->d_name[len-3] == 't')&&(ent->d_name[len-4] == '.'))
+			{
+			    printf ("%s\n", ent->d_name);
+			    string sub = fname.substr(0, len-4);
+			    FILE *fp = fopen((rvm->backingStore+fname).c_str(), "a");
+			    struct stat st1;
+			    stat((rvm->backingStore+fname).c_str(), &st1);
+			    int size = st1.st_size;
+			    printf("\n File Length - of %s is %d",sub.c_str(), size);
+			    rvm_map(rvm, sub.c_str(), size );
+			    rvm->memSegs[rvm->memSeg_count-1]->mapped=0;
+			    printf("\n count = %d \n", rvm->memSeg_count);
+		    }
+		  }
+		  closedir (dir);
+		}
+//		rvm->backingStore = "dirExistS"; // E and S in cap to avoid case when user creates direxists as a dir input
+	}
+	if ((rvm->flog == NULL)|| (rvm->ftrace == NULL))
+	{
+		perror("rvm_init: Unable to create the log/trace file");
+		return NULL;
+	}
+	else
+	{
+		TRACE(rvm, ">>>Init<<<\n");
+		printf("\n created the log & trace file \n");
+		return rvm;
 	}
 
-	return rvm;
 
 }
 /*
@@ -83,6 +129,7 @@ void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 	// find if the segment already exists.
 	int segment_index=0;
 	bool found = false;
+
 	for (segment_index=0;segment_index<rvm->memSeg_count;segment_index++)
 	{
 		if(!strcmp(rvm->memSegs[segment_index]->segName, segname))
@@ -99,6 +146,7 @@ void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 	}
 	if(found == true)
 	{
+		printf("\n found %s segment", rvm->memSegs[segment_index]->segName);
 		/*
 		 *  if found, check the size and do some alterations.
 		 */
@@ -109,12 +157,12 @@ void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 			rvm->storage_size-=rvm->memSegs[segment_index]->Segmentsize;
 
 			rvm->memSegs[segment_index]->mapped = 1;
-			rvm->memSegs[segment_index]->segAddr = (char *) realloc(rvm->memSegs[segment_index]->segAddr, (size_to_create+1 - rvm->memSegs[segment_index]->Segmentsize));
+			rvm->memSegs[segment_index]->segAddr = (char *) realloc(rvm->memSegs[segment_index]->segAddr, (size_to_create - rvm->memSegs[segment_index]->Segmentsize));
 			for (int i = rvm->memSegs[segment_index]->Segmentsize;i < size_to_create; i++)
 			{
 				rvm->memSegs[segment_index]->segAddr[i] = '.';
 			}
-			rvm->memSegs[segment_index]->segAddr[size_to_create] = '\0';
+			//rvm->memSegs[segment_index]->segAddr[size_to_create] = '\0';
 			//int fd = fileno(rvm->memSegs[segment_index]->fsegment); // file descriptor
 			rvm->memSegs[segment_index]->Segmentsize = size_to_create;
 			rvm->storage_size+=rvm->memSegs[segment_index]->Segmentsize;
@@ -138,7 +186,9 @@ void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 			rvm->memSegs[segment_index]->mapped = 1;
 			printf("\n storage size - %ld \n", rvm->storage_size);
 		}
-		return ((void*) rvm->memSegs[rvm->memSeg_count-1]->segAddr); //rvm->memSegs[segment_index]->fsegment);
+		int index=0;
+//		while( rvm->)
+		return ((void*) rvm->memSegs[segment_index]->segAddr); //rvm->memSegs[segment_index]->fsegment);
 	}
 	else
 	{		
@@ -288,9 +338,9 @@ trans_t rvm_begin_trans(rvm_t rvm, int numsegs, void **segbases)
 
 void rvm_about_to_modify(trans_t tid, void *segbase, int offset, int size)
 {
+	printf("\n in modify \n");
 	memSeg * currmSeg;
 	char *tempAboutToModify;
-	printf("\n 1\n");
 	transItem *newtransItem = new transItem;
 	if (tid->segBases.find(segbase) == tid->segBases.end()){
 		printf("\n couldn't find the seg base \n");
@@ -303,11 +353,10 @@ void rvm_about_to_modify(trans_t tid, void *segbase, int offset, int size)
 	newtransItem->segmentinProcess = currmSeg;
 	newtransItem->transactionSize = size;
 	newtransItem->offset = offset;
-	currmSeg->dirty++;
-	printf("\n 3\n");
-	tempAboutToModify = (char *) malloc((size+1));
-	memset(tempAboutToModify, 0, size+1);
-	memcpy(tempAboutToModify, currmSeg->segAddr, size);
+	currmSeg->dirty =1;
+	tempAboutToModify = (char *) malloc((size));
+	memset(tempAboutToModify, 0, size);
+	memcpy(tempAboutToModify, currmSeg->segAddr+offset, size);
 	printf("\n3a");
 	printf("\n backup - %s", tempAboutToModify);
 //	sprintf(tempAboutToModify, "%s/%d/%d/%s/\n", currmSeg->segName, offset, size, (char *)segbase+offset);
@@ -316,7 +365,7 @@ void rvm_about_to_modify(trans_t tid, void *segbase, int offset, int size)
 		perror("fprintf error");
 		abort();
 	}
-	*/printf("\n 4\n");
+	*/
 	//fwrite((char *)segbase + offset , 1, size, tid->rvm->flog);
 	//fprintf(tid->rvm->flog, "\n");
 	//write to disk
@@ -328,10 +377,10 @@ void rvm_about_to_modify(trans_t tid, void *segbase, int offset, int size)
 
 void rvm_commit_trans(trans_t tid)
 {
+	printf("\n in commit \n");
 	vector<transItem *>::iterator it = tid->action.begin();
 
 	while (it != tid->action.end()){
-		printf("\n 1 \n");
 		if ((*it)->segmentinProcess->dirty){
 			if (tid->rvm->flog != NULL)
 			{
@@ -344,7 +393,6 @@ void rvm_commit_trans(trans_t tid)
 			{
 				printf("\n log pointer is null");
 			}
-			printf ("\n 2 \n");
 /*
                         (*it)->segmentinProcess->logItem.offset  = (*it)->offset;
                         (*it)->segmentinProcess->logItem.size = (*it)->transactionSize;
@@ -353,7 +401,6 @@ void rvm_commit_trans(trans_t tid)
                         (*it)->segmentinProcess->logItem.data[(*it)->segmentinProcess->segName] = (string)((*it)->segmentinProcess->segAddr+((*it)->offset));
 */
 
-            printf ("\n 3 \n");
             fwrite((void*)((char*)(*it)->segmentinProcess->segAddr + (*it)->offset),
 					1,
 					(*it)->transactionSize,
@@ -361,7 +408,6 @@ void rvm_commit_trans(trans_t tid)
 			fprintf(tid->rvm->flog, "\n");
 			(*it)->segmentinProcess->dirty = 0;
 			fwrite((*it)->segmentinProcess->segAddr, 1, (*it)->segmentinProcess->Segmentsize, (*it)->segmentinProcess->fsegment);
-			printf ("\n 4 \n");
 
 		}
 
