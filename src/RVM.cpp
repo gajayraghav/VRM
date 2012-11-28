@@ -10,6 +10,8 @@
 #include <unistd.h>
 #include <string>
 #include <sstream>
+#include <iostream>
+#include <fstream>
 using namespace std;
 
 ///// git
@@ -89,6 +91,7 @@ void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 			if(rvm->memSegs[segment_index]->mapped == 1)
 			{
 				perror("\n abort - Already Mapped\n");
+				//abort();
 				return (void*) 0;
 			}
 			break;
@@ -104,11 +107,22 @@ void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 			printf("\n size less than requested \n");
 			// increase the size of the segment
 			rvm->storage_size-=rvm->memSegs[segment_index]->Segmentsize;
+
+			rvm->memSegs[segment_index]->mapped = 1;
+			rvm->memSegs[segment_index]->segAddr = (char *) realloc(rvm->memSegs[segment_index]->segAddr, (size_to_create+1 - rvm->memSegs[segment_index]->Segmentsize));
+			for (int i = rvm->memSegs[segment_index]->Segmentsize;i < size_to_create; i++)
+			{
+				rvm->memSegs[segment_index]->segAddr[i] = '.';
+			}
+			rvm->memSegs[segment_index]->segAddr[size_to_create] = '\0';
+			//int fd = fileno(rvm->memSegs[segment_index]->fsegment); // file descriptor
 			rvm->memSegs[segment_index]->Segmentsize = size_to_create;
 			rvm->storage_size+=rvm->memSegs[segment_index]->Segmentsize;
-			rvm->memSegs[segment_index]->mapped = 1;
 			printf("\n storage size - %ld \n", rvm->storage_size);
 
+	//			int filesize =
+	//		char *buf = (char *) malloc(filestream.Length);
+		//	memset(buf, 0, filestream.Length);*/
 		}
 		else if (rvm->memSegs[segment_index]->Segmentsize > size_to_create)
 		{
@@ -116,6 +130,7 @@ void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 			// abort
 			//printf("\n storage size - %ld \n", rvm->storage_size);
 			perror("\n cant remap the same segment \n");
+			abort();
 		}
 		else
 		{
@@ -137,10 +152,13 @@ void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 				strcpy(rvm->memSegs[rvm->memSeg_count]->segName, segname);
 				rvm->memSegs[rvm->memSeg_count]->dirty = 0;
 				rvm->memSegs[rvm->memSeg_count]->Segmentsize = size_to_create;
-				rvm->memSeg_count = rvm->memSeg_count + 1;
 				rvm->storage_size+=size_to_create;
 				rvm->memSegs[segment_index]->mapped = 1;
 				printf("\n storage size - %ld \n", rvm->storage_size);
+				rvm->memSegs[rvm->memSeg_count]->segAddr = (char *) malloc (size_to_create+1);
+				memset (rvm->memSegs[rvm->memSeg_count]->segAddr, '.', size_to_create);
+				rvm->memSegs[rvm->memSeg_count]->segAddr[size_to_create] = '\0';
+				rvm->memSeg_count = rvm->memSeg_count + 1;
 				return ((void*) rvm->memSegs[rvm->memSeg_count-1]->segAddr);
 			}
 		}
@@ -157,23 +175,28 @@ void rvm_unmap(rvm_t rvm, void *segbase)
 	bool found = false;
 	for (segment_index=0;segment_index<rvm->memSeg_count;segment_index++)
 	{
-		if(!strcmp(rvm->memSegs[segment_index]->segAddr, (char*)segbase))
+//		printf("\n comparing '%s' with '%s'", rvm->memSegs[segment_index]->segAddr,(char*)segbase);
+		if(rvm->memSegs[segment_index]->segAddr == (char *)segbase)
 		{
+			printf("\n found a segment to unmap");
 			found = true;
 			break;
 		}
 	}
 	if(found == true)
 	{
-		if(rvm->memSegs[segment_index]->dirty == 0)
+		if(rvm->memSegs[segment_index]->dirty == 1)
 		{
 			perror("\n cant unmap a dirty segment. Need to commit/abort before unmap");
 		}
 		else
 		{
+			printf("\n need to unmap segment %s",rvm->memSegs[segment_index]->segName);
 			rvm->memSegs[segment_index]->mapped = 0;
 			fclose(rvm->memSegs[segment_index]->fsegment);
 			rvm->memSegs[segment_index]->fsegment = NULL;
+			rvm->memSegs[segment_index]->segAddr = NULL;
+			printf("\n storage size - %ld \n", rvm->storage_size);
 			// need something related to the segAddr. make it null ?
 		}
 	}
