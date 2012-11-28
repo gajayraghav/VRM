@@ -331,21 +331,38 @@ void rvm_commit_trans(trans_t tid)
 	vector<transItem *>::iterator it = tid->action.begin();
 
 	while (it != tid->action.end()){
+		printf("\n 1 \n");
 		if ((*it)->segmentinProcess->dirty){
-			if (fprintf(tid->rvm->flog, "commit_data/%s/%d/%d/", (*it)->segmentinProcess->segName, (*it)->offset, (*it)->transactionSize ) < 0){
-				debugTrace("fprintf ERROR");
-				abort();
+			if (tid->rvm->flog != NULL)
+			{
+				if (fprintf(tid->rvm->flog, "commit_data/%s/%d/%d/", (*it)->segmentinProcess->segName, (*it)->offset, (*it)->transactionSize ) < 0){
+					printf("\n failure to log \n");
+					abort();
+				}
 			}
+			else
+			{
+				printf("\n log pointer is null");
+			}
+			printf ("\n 2 \n");
+/*
                         (*it)->segmentinProcess->logItem.offset  = (*it)->offset;
                         (*it)->segmentinProcess->logItem.size = (*it)->transactionSize;
                         (*it)->segmentinProcess->logItem.segName = (string)(*it)->segmentinProcess->segName;
-                        (*it)->segmentinProcess->logItem.data[(*it)->segmentinProcess->segName] = (string)((*it)->segmentinProcess->segAddr+((*it)->offset)); 
-			fwrite((void*)((char*)(*it)->segmentinProcess->segAddr + (*it)->offset),
+                        printf("\n 2a \n");
+                        (*it)->segmentinProcess->logItem.data[(*it)->segmentinProcess->segName] = (string)((*it)->segmentinProcess->segAddr+((*it)->offset));
+*/
+
+            printf ("\n 3 \n");
+            fwrite((void*)((char*)(*it)->segmentinProcess->segAddr + (*it)->offset),
 					1,
 					(*it)->transactionSize,
 					tid->rvm->flog);
 			fprintf(tid->rvm->flog, "\n");
-			(*it)->segmentinProcess->dirty--;
+			(*it)->segmentinProcess->dirty = 0;
+			fwrite((*it)->segmentinProcess->segAddr, 1, (*it)->segmentinProcess->Segmentsize, (*it)->segmentinProcess->fsegment);
+			printf ("\n 4 \n");
+
 		}
 
 		delete *it;
@@ -354,7 +371,7 @@ void rvm_commit_trans(trans_t tid)
 	}
 	//write to disk
 //	fdatasync(fileno(tid->rvm->flog));
-	fwrite("!", 1, 1, tid->rvm->flog);
+//	fwrite("!", 1, 1, tid->rvm->flog);
 	//flock(fileno(tid->rvm->flog), LOCK_UN);
 	//flock((*it)->transmSeg->fd, LOCK_UN);
 	return;
