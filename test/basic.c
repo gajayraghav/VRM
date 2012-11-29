@@ -32,7 +32,7 @@ void proc1()
      sprintf(segs[0]+OFFSET2, TEST_STRING);
      
      rvm_commit_trans(trans);
-
+//     rvm_commit_trans_heavy(trans);
      abort();
 }
 
@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 
      waitpid(pid, NULL, 0);
 
-     proc2();
+    proc2();
 
      return 0;
 }

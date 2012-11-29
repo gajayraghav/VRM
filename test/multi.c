@@ -40,13 +40,14 @@ void proc1()
      strcpy(segs[1]+OFFSET1, STRING1);
 
      rvm_commit_trans(trans);
-
+     printf("\n proc 1 ended");
      abort();
 }
 
 
 void proc2() 
 {
+	printf("\n proc 2 started \n");
      rvm_t rvm;
      char *segs[2];
 

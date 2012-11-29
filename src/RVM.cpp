@@ -3,9 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../inc/rvm.h"
-
 #include <dirent.h>
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>
@@ -79,25 +77,46 @@ rvm_t rvm_init(const char *directory)
 		dir = opendir(directory);
 		if (dir != NULL)
 		{
-		  while ((ent = readdir (dir)) != NULL)
-		  {
-			string fname = string(ent->d_name);
-			int len = fname.length();
-			if((ent->d_name[len-1] == 't')&&(ent->d_name[len-2] == 'x')&&(ent->d_name[len-3] == 't')&&(ent->d_name[len-4] == '.'))
+			while ((ent = readdir (dir)) != NULL)
 			{
-			    printf ("%s\n", ent->d_name);
-			    string sub = fname.substr(0, len-4);
-			    struct stat st1;
-			    stat((rvm->backingStore+fname).c_str(), &st1);
-			    int size = st1.st_size;
-			    printf("\n File Length - of %s is %d",sub.c_str(), size);
-			    rvm_map(rvm, sub.c_str(), size );
-			    rvm->memSegs[rvm->memSeg_count-1]->mapped=0;
-		    }
-		  }
-		  closedir (dir);
+				string fname = string(ent->d_name);
+				int len = fname.length();
+				if((ent->d_name[len-1] == 't')&&(ent->d_name[len-2] == 'x')&&(ent->d_name[len-3] == 't')&&(ent->d_name[len-4] == '.'))
+				{
+					printf ("%s\n", ent->d_name);
+					string sub = fname.substr(0, len-4);
+					struct stat st1;
+					stat((rvm->backingStore+fname).c_str(), &st1);
+					int size = st1.st_size;
+					printf("\n File Length - of %s is %d",sub.c_str(), size);
+/*
+					rvm_map(rvm, sub.c_str(), size );
+					rvm->memSegs[rvm->memSeg_count-1]->mapped=0;
+*/
+					if (rvm->memSeg_count != MAX_SEGMENTS)
+					{
+						rvm->memSegs[rvm->memSeg_count]->fsegment = fopen((rvm->backingStore + string(sub.c_str())+".txt").c_str(), "r+");
+						if(rvm->memSegs[rvm->memSeg_count]->fsegment != NULL)
+						{
+							//rewind(rvm->memSegs[rvm->memSeg_count]->fsegment);
+							strcpy(rvm->memSegs[rvm->memSeg_count]->segName, sub.c_str());
+							rvm->memSegs[rvm->memSeg_count]->dirty = 0;
+							rvm->memSegs[rvm->memSeg_count]->Segmentsize = size;
+							rvm->storage_size+=size;
+							rvm->memSegs[rvm->memSeg_count]->mapped = 0;
+							rvm->memSegs[rvm->memSeg_count]->segAddr = (char *) malloc (size+1);
+							memset (rvm->memSegs[rvm->memSeg_count]->segAddr, 0, size);
+							//fwrite(rvm->memSegs[rvm->memSeg_count]->segAddr, 1, size_to_create, rvm->memSegs[rvm->memSeg_count]->fsegment);
+							//rvm->memSegs[rvm->memSeg_count]->segAddr[size_to_create] = '\0';
+							rvm->memSeg_count = rvm->memSeg_count + 1;
+							printf("\n created a new segment %d \n", rvm->memSeg_count);
+						}
+					}
+				}
+			}
+			closedir (dir);
 		}
-//		rvm->backingStore = "dirExistS"; // E and S in cap to avoid case when user creates direxists as a dir input
+		//		rvm->backingStore = "dirExistS"; // E and S in cap to avoid case when user creates direxists as a dir input
 	}
 	if ((rvm->flog == NULL)|| (rvm->ftrace == NULL))
 	{
@@ -166,16 +185,16 @@ void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 			rvm->storage_size+=rvm->memSegs[segment_index]->Segmentsize;
 			printf("\n storage size - %ld \n", rvm->storage_size);
 
-	//			int filesize =
-	//		char *buf = (char *) malloc(filestream.Length);
-		//	memset(buf, 0, filestream.Length);*/
+			//			int filesize =
+			//		char *buf = (char *) malloc(filestream.Length);
+			//	memset(buf, 0, filestream.Length);*/
 		}
 		else if (rvm->memSegs[segment_index]->Segmentsize > size_to_create)
 		{
-			printf("\n size more than requested \n");
+			//printf("\n size more than requested \n");
 			// abort
 			//printf("\n storage size - %ld \n", rvm->storage_size);
-			perror("\n cant remap the same segment \n");
+			perror("\n File size greater than the requested. aborting.... \n");
 			abort();
 		}
 		else
@@ -197,7 +216,7 @@ void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 		printf("\n create the new segment - %d \n", (int) rvm->memSeg_count );
 		if (rvm->memSeg_count != MAX_SEGMENTS)
 		{
-			rvm->memSegs[rvm->memSeg_count]->fsegment = fopen((rvm->backingStore + string(segname)+".txt").c_str(), "a+");
+			rvm->memSegs[rvm->memSeg_count]->fsegment = fopen((rvm->backingStore + string(segname)+".txt").c_str(), "w+x");
 			if(rvm->memSegs[rvm->memSeg_count]->fsegment != NULL)
 			{
 				rewind(rvm->memSegs[rvm->memSeg_count]->fsegment);
@@ -205,14 +224,23 @@ void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 				rvm->memSegs[rvm->memSeg_count]->dirty = 0;
 				rvm->memSegs[rvm->memSeg_count]->Segmentsize = size_to_create;
 				rvm->storage_size+=size_to_create;
-				rvm->memSegs[segment_index]->mapped = 1;
+				rvm->memSegs[rvm->memSeg_count]->mapped = 1;
 				printf("\n storage size - %ld \n", rvm->storage_size);
 				rvm->memSegs[rvm->memSeg_count]->segAddr = (char *) malloc (size_to_create+1);
 				memset (rvm->memSegs[rvm->memSeg_count]->segAddr, 0, size_to_create);
+				fwrite(rvm->memSegs[rvm->memSeg_count]->segAddr, 1, size_to_create, rvm->memSegs[rvm->memSeg_count]->fsegment);
 				//rvm->memSegs[rvm->memSeg_count]->segAddr[size_to_create] = '\0';
 				rvm->memSeg_count = rvm->memSeg_count + 1;
+				printf("\n created a new segment %d \n", rvm->memSeg_count);
 				return ((void*) rvm->memSegs[rvm->memSeg_count-1]->segAddr);
 			}
+/*
+			else
+			{
+				printf("\n file open failure\n");
+				perror((rvm->backingStore + string(segname)+".txt").c_str());
+			}
+*/
 		}
 	}
 	return (void*) 0;
@@ -227,7 +255,7 @@ void rvm_unmap(rvm_t rvm, void *segbase)
 	bool found = false;
 	for (segment_index=0;segment_index<rvm->memSeg_count;segment_index++)
 	{
-//		printf("\n comparing '%s' with '%s'", rvm->memSegs[segment_index]->segAddr,(char*)segbase);
+		//		printf("\n comparing '%s' with '%s'", rvm->memSegs[segment_index]->segAddr,(char*)segbase);
 		if(rvm->memSegs[segment_index]->segAddr == (char *)segbase)
 		{
 			printf("\n found a segment to unmap");
@@ -237,7 +265,7 @@ void rvm_unmap(rvm_t rvm, void *segbase)
 	}
 	if(found == true)
 	{
-		if(rvm->memSegs[segment_index]->dirty == 1)
+		if(rvm->memSegs[segment_index]->dirty > 0)
 		{
 			perror("\n cant unmap a dirty segment. Need to commit/abort before unmap");
 		}
@@ -317,10 +345,10 @@ trans_t rvm_begin_trans(rvm_t rvm, int numsegs, void **segbases)
 			if (*(segbases + counter) == rvm->memSegs[index]->segAddr){
 				//if the same, then lock it
 				printf("\n found segment %s",rvm->memSegs[index]->segName );
-				if (flock((int)fileno(rvm->memSegs[index]->fsegment), LOCK_EX || LOCK_NB) == -1){
+		/*		if (flock((int)fileno(rvm->memSegs[index]->fsegment), LOCK_EX || LOCK_NB) == -1){
 					debugTrace("already locked " + (string)rvm->memSegs[index]->segName);
 					return (trans_t) -1;
-				}
+				}*/
 				debugTrace("locking a mSeg");
 				rvm->memSegs[index]->dirty = 0;
 				newTrans->segBases[*(segbases + counter)] = rvm->memSegs[index];
@@ -355,24 +383,25 @@ void rvm_about_to_modify(trans_t tid, void *segbase, int offset, int size)
 	newtransItem->segmentinProcess = currmSeg;
 	newtransItem->transactionSize = size;
 	newtransItem->offset = offset;
-	currmSeg->dirty =1;
+	currmSeg->dirty++;
 	tempAboutToModify = (char *) malloc((size));
 	memset(tempAboutToModify, 0, size);
 	memcpy(tempAboutToModify, currmSeg->segAddr+offset, size);
-	printf("\n3a");
-	printf("\n backup - %s", tempAboutToModify);
-//	sprintf(tempAboutToModify, "%s/%d/%d/%s/\n", currmSeg->segName, offset, size, (char *)segbase+offset);
-	currmSeg->aboutToModify.insert(currmSeg->aboutToModify.end(), (string)tempAboutToModify);
-	/*if (fprintf(tid->rvm->flog, "about_to_modify/%s/%d/%d/", currmSeg->segName,offset, size) < 0){
+	newtransItem->aboutToModify = (char *) malloc((size));
+	memcpy(newtransItem->aboutToModify, currmSeg->segAddr+offset, size);
+	printf("about_to_modify - %s\n", newtransItem->aboutToModify);
+//	currmSeg->aboutToModify.insert(currmSeg->aboutToModify.end(), (string)tempAboutToModify);
+	if (fprintf(tid->rvm->flog, "about_to_modify/%s/%d/%d/", currmSeg->segName,offset, size) < 0){
 		perror("fprintf error");
 		abort();
 	}
-	*/
-	//fwrite((char *)segbase + offset , 1, size, tid->rvm->flog);
-	//fprintf(tid->rvm->flog, "\n");
-	//write to disk
-	//fdatasync(fileno(tid->rvm->flog));
+	fwrite((void*)((char*)currmSeg->segAddr + newtransItem->offset),
+                                        1,
+                                        newtransItem->transactionSize,
+                                        tid->rvm->flog);
+        fprintf(tid->rvm->flog, "\n"); 
 	tid->action.push_back(newtransItem);
+       
 	return;
 
 }
@@ -380,82 +409,91 @@ void rvm_about_to_modify(trans_t tid, void *segbase, int offset, int size)
 void rvm_commit_trans(trans_t tid)
 {	vector<transItem *>::iterator it = tid->action.begin();
 
-while (it != tid->action.end()){
-	if ((*it)->segmentinProcess->dirty){
-		if (tid->rvm->flog != NULL)
-		{
-			(*it)->segmentinProcess->logItem.offset  = (*it)->offset;
-			(*it)->segmentinProcess->logItem.size = (*it)->transactionSize;
-			(*it)->segmentinProcess->logItem.segName= (*it)->segmentinProcess->segName;
-			(*it)->segmentinProcess->logItem.data = (*it)->segmentinProcess->segAddr+(*it)->offset;
-			if (fprintf(tid->rvm->flog, "commit_data/%s/%d/%d/", (*it)->segmentinProcess->segName, (*it)->offset, (*it)->transactionSize ) < 0){
-				printf("\n failure to log \n");
-				abort();
+	while (it != tid->action.end()){
+		if ((*it)->segmentinProcess->dirty > 0){
+			if (tid->rvm->flog != NULL)
+			{
+				(*it)->segmentinProcess->logItem.offset  = (*it)->offset;
+				(*it)->segmentinProcess->logItem.size = (*it)->transactionSize;
+				(*it)->segmentinProcess->logItem.segName= (*it)->segmentinProcess->segName;
+				(*it)->segmentinProcess->logItem.data = (*it)->segmentinProcess->segAddr+(*it)->offset;
+				if (fprintf(tid->rvm->flog, "commit_data/%s/%d/%d/", (*it)->segmentinProcess->segName, (*it)->offset, (*it)->transactionSize ) < 0){
+					printf("\n failure to log \n");
+					abort();
+				}
 			}
+			else
+			{
+				printf("\n log pointer is null");
+			}
+			fwrite((void*)((char*)(*it)->segmentinProcess->segAddr + (*it)->offset),
+					1,
+					(*it)->transactionSize,
+					tid->rvm->flog);
+			fprintf(tid->rvm->flog, "\n");
+			(*it)->segmentinProcess->dirty--;
+			rewind((*it)->segmentinProcess->fsegment);	
+			lseek(fileno((*it)->segmentinProcess->fsegment), (*it)->offset, SEEK_CUR);
+			fwrite((*it)->segmentinProcess->segAddr + (*it)->offset, 
+				1, 
+				(*it)->transactionSize, 
+				(*it)->segmentinProcess->fsegment);
+			(*it)->aboutToModify = NULL;
 		}
-		else
-		{
-			printf("\n log pointer is null");
-		}
-		printf("1 here\n");
-		fwrite((void*)((char*)(*it)->segmentinProcess->segAddr + (*it)->offset),
-				1,
-				(*it)->transactionSize,
-				tid->rvm->flog);
-		printf("2 here\n");
-		fprintf(tid->rvm->flog, "\n");
-		(*it)->segmentinProcess->dirty = 0;
-		printf("3 here\n");
-		fwrite((*it)->segmentinProcess->segAddr, 1, (*it)->segmentinProcess->Segmentsize, (*it)->segmentinProcess->fsegment);
-
-		printf("4 here\n");
+		delete *it;
+		it = tid->action.erase(it); 
 	}
-
-	delete *it;
-	it = tid->action.erase(it);
-
-	printf("5 here\n");
-}
-printf("6 here\n");
-return;
-
+	return;
 }
 
 void rvm_commit_trans_heavy(trans_t tid)
 {
+	vector<transItem *>::iterator it = tid->action.begin();
+
+	while (it != tid->action.end()){
+		if ((*it)->segmentinProcess->dirty){
+			(*it)->segmentinProcess->dirty = 0;
+			fwrite((*it)->segmentinProcess->segAddr, 1, (*it)->segmentinProcess->Segmentsize, (*it)->segmentinProcess->fsegment);
+			(*it)->aboutToModify = NULL;
+		}
+		delete *it;
+		it = tid->action.erase(it);
+	}
+	return;
 
 }
 
 void rvm_abort_trans(trans_t tid)
 {
 	map <void *, memSeg*>::iterator segBases = tid->segBases.begin();
-		//FILE * oldbackingFile;
+	//FILE * oldbackingFile;
 
 	vector<transItem *>::iterator it = tid->action.begin();
-	while (it != tid->action.end()){
-		if ((*it)->segmentinProcess->dirty){
-			flock(fileno(tid->rvm->flog), LOCK_EX);
+	while (it != tid->action.end() ){
+		if ((*it)->segmentinProcess->dirty > 0){
 			fprintf(tid->rvm->flog,"abort/%s/%d/%d/", (*it)->segmentinProcess->segName, (*it)->offset, (*it)->transactionSize);
 			fwrite((void*)((char*)(*it)->segmentinProcess->segAddr + (*it)->offset),
 					1,
 					(*it)->transactionSize,
 					tid->rvm->flog);
 			fprintf(tid->rvm->flog, "\n");
-			flock(fileno(tid->rvm->flog), LOCK_UN);
+			printf("bkp - %s\n", (*it)->aboutToModify);	
+			memcpy((*it)->segmentinProcess->segAddr+(*it)->offset,(*it)->aboutToModify, (*it)->transactionSize);
 			(*it)->segmentinProcess->dirty--;
 		}
+		
 		delete *it;
 		tid->action.erase(it);
 	}
-	
-       segBases = tid->segBases.begin();
-       lseek(fileno(segBases->second->fsegment), 0, SEEK_SET);
-       while (segBases != tid->segBases.end()){
+/*
+	segBases = tid->segBases.begin();
+	lseek(fileno(segBases->second->fsegment), 0, SEEK_SET);
+	while (segBases != tid->segBases.end()){
 		debugTrace("remapping up file ");
-	        segBases->second->segAddr = NULL;	
+		segBases->second->segAddr = NULL;	
 		segBases++;
 	}
-
+*/
 }
 
 void rvm_truncate_log(rvm_t rvm)

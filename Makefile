@@ -7,6 +7,7 @@ SRC =		src/RVM.cpp
 LIB =		obj/RVM.a	
 BASIC=		test/basic.c
 ABORT=		test/abort.c
+MULTI=		test/multi.c
 MULTIABORT=	test/multi-abort.c
 TRUNCATE=	test/truncate.c
 INC =		inc/
@@ -22,6 +23,8 @@ multiabort:	$(INC) $(ABORT) $(LIB)
 	$(CXXFLAGS) multiabort -I $(INC) $(MULTIABORT) $(LIB)
 truncate:	$(INC) $(ABORT) $(LIB)
 	$(CXXFLAGS) truncate -I $(INC) $(TRUNCATE) $(LIB)
+multi:	$(INC) $(ABORT) $(LIB)
+	$(CXXFLAGS) multi -I $(INC) $(MULTI) $(LIB)
 $(LIB):	$(OBJ)
 	$(LIBFLAGS) $(LIB) $(OBJ)	
 $(OBJ):	$(LIBS) $(SRC)

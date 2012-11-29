@@ -7,11 +7,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define TEST_STRING1 "hello, world"
+#define TEST_STRING1 "hello"
 #define TEST_STRING2 "bleg!"
-#define OFFSET2 1000
-
-
+#define TEST_STRING3 "wowww"
+#define TEST_STRING4 "yeahhhh"
+#define TEST_STRING5 "please"
+#define TEST_STRING6 "this"
+#define OFFSET2 110
+#define OFFSET3 220
+#define OFFSET4 330
 int main(int argc, char **argv)
 {
      rvm_t rvm;
@@ -32,24 +36,29 @@ int main(int argc, char **argv)
      sprintf(seg, TEST_STRING1);
      
      rvm_about_to_modify(trans, seg, OFFSET2, 100);
-     sprintf(seg+OFFSET2, TEST_STRING1);
+     sprintf(seg+OFFSET2, TEST_STRING2);
      
+     rvm_about_to_modify(trans, seg, OFFSET3, 100);
+     sprintf(seg+OFFSET3, TEST_STRING3);
      rvm_commit_trans(trans);
 
      /* start writing some different data, but abort */
      trans = rvm_begin_trans(rvm, 1, (void**) segs);
      rvm_about_to_modify(trans, seg, 0, 100);
-     sprintf(seg, TEST_STRING2);
+     sprintf(seg, TEST_STRING4);
      
      rvm_about_to_modify(trans, seg, OFFSET2, 100);
-     sprintf(seg+OFFSET2, TEST_STRING2);
+     sprintf(seg+OFFSET2, TEST_STRING5);
 
+     rvm_about_to_modify(trans, seg, OFFSET3, 100);
+     sprintf(seg+OFFSET3, TEST_STRING6);
      rvm_abort_trans(trans);
 
-
+    // printf("offset 2 -- %s\n", seg+OFFSET2);
+    // printf("offset 1 -- %s\n", seg);
      /* test that the data was restored */
-     if(strcmp(seg+OFFSET2, TEST_STRING1)) {
-	  printf("ERROR: second hello is incorrect (%s)\n",
+     if(strcmp(seg+OFFSET2, TEST_STRING2)) {
+	  printf("ERROR: blew is incorrect (%s)\n",
 		 seg+OFFSET2);
 	  exit(2);
      }
@@ -65,4 +74,3 @@ int main(int argc, char **argv)
      printf("OK\n");
      exit(0);
 }
-

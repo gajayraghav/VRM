@@ -25,7 +25,6 @@ struct memSegment {
   char segName[20]; 			// seg name
   char* segAddr;
   logitem logItem;
-  vector<string> aboutToModify;         // about_to_modify        
   FILE * fsegment; 			// file pointer to the segment in the backing store
   int Segmentsize;	 		// the size of the segment.
   int dirty; 				// yet to be written to disk
@@ -50,6 +49,7 @@ typedef struct transactionItem { 	// per transaction item
 	memSeg *segmentinProcess; 	// current segment being processed
 	int offset; 			// offset at that transaction
 	int transactionSize; 		// transaction size
+	char * aboutToModify;         // about_to_modify        
 	int id;				// transaction id 
 }transItem;
 
