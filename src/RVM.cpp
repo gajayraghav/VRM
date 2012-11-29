@@ -60,8 +60,8 @@ rvm_t rvm_init(const char *directory)
 		rvm->backingStore.append("/");
 		rvm->storage_size = 0;
 		rvm->memSeg_count = 0;
-		rvm->flog = fopen((rvm->backingStore+string("transaction.log")).c_str(), "w");
-		rvm->ftrace = fopen((rvm->backingStore+string("trace.log")).c_str(), "w");
+		rvm->flog = fopen((rvm->backingStore+string("transaction.log")).c_str(), "r+");
+		rvm->ftrace = fopen((rvm->backingStore+string("trace.log")).c_str(), "r+");
 		//printf("\n %s",(rvm->backingStore+string("trace.log")).c_str() );
 		for (int i =0; i< MAX_SEGMENTS; i++)
 		{
@@ -174,11 +174,18 @@ void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 			rvm->storage_size-=rvm->memSegs[segment_index]->Segmentsize;
 
 			rvm->memSegs[segment_index]->mapped = 1;
-			rvm->memSegs[segment_index]->segAddr = (char *) realloc(rvm->memSegs[segment_index]->segAddr, (size_to_create - rvm->memSegs[segment_index]->Segmentsize));
+			rvm->memSegs[segment_index]->segAddr = (char *) realloc(rvm->memSegs[segment_index]->segAddr, size_to_create);//(size_to_create - rvm->memSegs[segment_index]->Segmentsize));
 			for (int i = rvm->memSegs[segment_index]->Segmentsize;i < size_to_create; i++)
 			{
 				rvm->memSegs[segment_index]->segAddr[i] = 0;
+
 			}
+/*
+			rewind(rvm->memSegs[segment_index]->fsegment);
+			fseek(rvm->memSegs[segment_index]->fsegment, 0L, SEEK_CUR);
+			fprintf(rvm->memSegs[segment_index]->fsegment, "%s", rvm->memSegs[segment_index]->segAddr);
+*/
+
 			//rvm->memSegs[segment_index]->segAddr[size_to_create] = '\0';
 			//int fd = fileno(rvm->memSegs[segment_index]->fsegment); // file descriptor
 			rvm->memSegs[segment_index]->Segmentsize = size_to_create;
@@ -203,6 +210,7 @@ void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 			rvm->memSegs[segment_index]->mapped = 1;
 			printf("\n storage size - %ld \n", rvm->storage_size);
 		}
+		printf("\n before fread \n");
 		int sizeread = fread(rvm->memSegs[segment_index]->segAddr, 1, size_to_create,rvm->memSegs[segment_index]->fsegment);
 		printf("\n size read = %d", sizeread);
 		rewind(rvm->memSegs[segment_index]->fsegment);
@@ -410,7 +418,9 @@ void rvm_commit_trans(trans_t tid)
 {	vector<transItem *>::iterator it = tid->action.begin();
 
 	while (it != tid->action.end()){
+		printf("\n need to commit - %s \n", (*it)->segmentinProcess->segName);
 		if ((*it)->segmentinProcess->dirty > 0){
+			printf("\n write commit log for %s \n",(*it)->segmentinProcess->segName );
 			if (tid->rvm->flog != NULL)
 			{
 				(*it)->segmentinProcess->logItem.offset  = (*it)->offset;

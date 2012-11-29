@@ -8,6 +8,10 @@ LIB =		obj/RVM.a
 BASIC=		test/basic.c
 ABORT=		test/abort.c
 MULTI=		test/multi.c
+TEST1=		test/test1.c
+TEST2=		test/test2.c
+TEST3=		test/test3.c
+TEST4=		test/test4.c
 MULTIABORT=	test/multi-abort.c
 TRUNCATE=	test/truncate.c
 INC =		inc/
@@ -25,6 +29,15 @@ truncate:	$(INC) $(ABORT) $(LIB)
 	$(CXXFLAGS) truncate -I $(INC) $(TRUNCATE) $(LIB)
 multi:	$(INC) $(ABORT) $(LIB)
 	$(CXXFLAGS) multi -I $(INC) $(MULTI) $(LIB)
+test1:	$(INC) $(ABORT) $(LIB)
+	$(CXXFLAGS) test1 -I $(INC) $(TEST1) $(LIB)
+test2:	$(INC) $(ABORT) $(LIB)
+	$(CXXFLAGS) test2 -I $(INC) $(TEST2) $(LIB)
+test3:	$(INC) $(ABORT) $(LIB)
+	$(CXXFLAGS) test3 -I $(INC) $(TEST3) $(LIB)
+test4:	$(INC) $(ABORT) $(LIB)
+	$(CXXFLAGS) test4 -I $(INC) $(TEST4) $(LIB)
+
 $(LIB):	$(OBJ)
 	$(LIBFLAGS) $(LIB) $(OBJ)	
 $(OBJ):	$(LIBS) $(SRC)
