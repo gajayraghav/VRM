@@ -29,7 +29,7 @@ rvm_t rvm_init(const char *directory)
 	struct stat st = {0};
 	TRACE("<<<<<\t rvm_init");
 	toscreen = 0;
-	write_to_screen();
+	write_to_tracefile();
 	if (stat(directory, &st) == -1) {
 
 		mkdir(directory, 0766);
@@ -88,7 +88,7 @@ rvm_t rvm_init(const char *directory)
 					char size_str[10];
 					sprintf(size_str, "%d", size);
 					TRACE (string("rvm_init: found") + ent->d_name + string(" of size ") +size_str + string(" bytes") );
-					printf("\n rvm:init found %s of size %d bytes\n", ent->d_name, size);
+		//ajay			printf("\n rvm:init found %s of size %d bytes\n", ent->d_name, size);
 					if (rvm->memSeg_count != MAX_SEGMENTS)
 					{
 						rvm->memSegs[rvm->memSeg_count]->fsegment = fopen((rvm->backingStore + string(sub.c_str())+".txt").c_str(), "r+");
@@ -248,7 +248,7 @@ void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 				rvm->memSeg_count = rvm->memSeg_count + 1;
 				sprintf(tmp_str, "%d",rvm->memSeg_count );
 				TRACE(" rvm_map: created a new segment " +rvm->memSeg_count);
-				printf("\n created a new segment %d \n", rvm->memSeg_count);
+	// ajay			printf("\n created a new segment %d \n", rvm->memSeg_count);
 				TRACE("rvm_map \t >>>>> 1 ");
 				return ((void*) rvm->memSegs[rvm->memSeg_count-1]->segAddr);
 			}
@@ -364,12 +364,14 @@ void rvm_destroy(rvm_t rvm, const char *segname)
 
 trans_t rvm_begin_trans(rvm_t rvm, int segcount, void **segbases)
 {
-	TRACE("<<<< \n rvm_begin_trans");
+	TRACE("<<<< rvm_begin_trans");
 	trans_t newTrans = new transactions;
 	newTrans->rvm = rvm;
 	int SegsFound= 0, counter;
 	int index = 0;
-	TRACE("rvm_begin_trans: beginning transaction with segcount " + segcount);
+	char tmp_string[10] ;
+	sprintf(tmp_string, "%d", segcount);
+	TRACE(" rvm_begin_trans: beginning transaction with segcount " + string(tmp_string));
 	while(rvm->memSegs[index] != rvm->memSegs[MAX_SEGMENTS-1]){
 		for (counter = 0; counter < segcount; counter++){//for each segbase
 			if (*(segbases + counter) == rvm->memSegs[index]->segAddr){

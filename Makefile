@@ -13,6 +13,14 @@ TEST2=		test/test2.c
 TEST3=		test/test3.c
 TEST4=		test/test4.c
 TEST5=		test/test5.c
+TEST20=		test/test20.c
+SRI1=		test/sri_basicint.c
+SRI2=		test/sri_multi.c
+SRI3=		test/sri_multiseg.c
+SRI4=		test/sri_new.c
+ARCH1=		test/arch_basicint.c
+ARCH2=		test/arch_twostring.c
+OVERLAP=		test/overlap.c
 MULTIABORT=	test/multi-abort.c
 TRUNCATE=	test/truncate.c
 INC =		inc/
@@ -40,6 +48,26 @@ test4:	$(INC) $(TEST4) $(LIB)
 	$(CXXFLAGS) test4 -I $(INC) $(TEST4) $(LIB)
 test5:	$(INC) $(TEST5) $(LIB)
 	$(CXXFLAGS) test5 -I $(INC) $(TEST5) $(LIB)
+test20:	$(INC) $(TEST20) $(LIB)
+	$(CXXFLAGS) test20 -I $(INC) $(TEST20) $(LIB)
+
+
+sri1:	$(INC) $(SRI1) $(LIB)
+	$(CXXFLAGS) sri1 -I $(INC) $(SRI1) $(LIB)
+sri2:	$(INC) $(SRI2) $(LIB)
+	$(CXXFLAGS) sri2 -I $(INC) $(SRI2) $(LIB)
+sri3:	$(INC) $(SRI3) $(LIB)
+	$(CXXFLAGS) sri3 -I $(INC) $(SRI3) $(LIB)
+sri4:	$(INC) $(SRI4) $(LIB)
+	$(CXXFLAGS) sri4 -I $(INC) $(SRI4) $(LIB)
+
+arch1:	$(INC) $(ARCH1) $(LIB)
+	$(CXXFLAGS) arch1 -I $(INC) $(ARCH1) $(LIB)
+arch2:	$(INC) $(ARCH2) $(LIB)
+	$(CXXFLAGS) arch2 -I $(INC) $(ARCH2) $(LIB)
+
+overlap:	$(INC) $(OVERLAP) $(LIB)
+	$(CXXFLAGS) overlap -I $(INC) $(OVERLAP) $(LIB)
 	
 
 $(LIB):	$(OBJ)

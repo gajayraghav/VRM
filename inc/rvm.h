@@ -6,7 +6,7 @@
 #include <string>
 using namespace std;
 
-#define MAX_SEGMENTS 20
+#define MAX_SEGMENTS 30
 #define SEGMENT_SIZE 1024*1024*10
 // Log Structure
 typedef struct LogItem
