@@ -12,6 +12,7 @@ TEST1=		test/test1.c
 TEST2=		test/test2.c
 TEST3=		test/test3.c
 TEST4=		test/test4.c
+TEST5=		test/test5.c
 MULTIABORT=	test/multi-abort.c
 TRUNCATE=	test/truncate.c
 INC =		inc/
@@ -23,20 +24,23 @@ basic:	$(INC) $(BASIC) $(LIB)
 	$(CXXFLAGS) basic -I $(INC) $(BASIC) $(LIB)
 abort:	$(INC) $(ABORT) $(LIB)
 	$(CXXFLAGS) abort -I $(INC) $(ABORT) $(LIB)
-multiabort:	$(INC) $(ABORT) $(LIB)
+multiabort:	$(INC) $(MULTIABORT) $(LIB)
 	$(CXXFLAGS) multiabort -I $(INC) $(MULTIABORT) $(LIB)
-truncate:	$(INC) $(ABORT) $(LIB)
+truncate:	$(INC) $(TRUNCATE) $(LIB)
 	$(CXXFLAGS) truncate -I $(INC) $(TRUNCATE) $(LIB)
-multi:	$(INC) $(ABORT) $(LIB)
+multi:	$(INC) $(MULTI) $(LIB)
 	$(CXXFLAGS) multi -I $(INC) $(MULTI) $(LIB)
-test1:	$(INC) $(ABORT) $(LIB)
+test1:	$(INC) $(TEST1) $(LIB)
 	$(CXXFLAGS) test1 -I $(INC) $(TEST1) $(LIB)
-test2:	$(INC) $(ABORT) $(LIB)
+test2:	$(INC) $(TEST2) $(LIB)
 	$(CXXFLAGS) test2 -I $(INC) $(TEST2) $(LIB)
-test3:	$(INC) $(ABORT) $(LIB)
+test3:	$(INC) $(TEST3) $(LIB)
 	$(CXXFLAGS) test3 -I $(INC) $(TEST3) $(LIB)
-test4:	$(INC) $(ABORT) $(LIB)
+test4:	$(INC) $(TEST4) $(LIB)
 	$(CXXFLAGS) test4 -I $(INC) $(TEST4) $(LIB)
+test5:	$(INC) $(TEST5) $(LIB)
+	$(CXXFLAGS) test5 -I $(INC) $(TEST5) $(LIB)
+	
 
 $(LIB):	$(OBJ)
 	$(LIBFLAGS) $(LIB) $(OBJ)	

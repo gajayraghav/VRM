@@ -1,4 +1,10 @@
-/* test4.c - to test 5 segments and data at different offset at each segment */
+/*
+ * test5.c - checking reusing a segment in different transaction
+ *
+ *  Created on: Nov 29, 2012
+ *      Author: Ajay
+ */
+
 
 #include "rvm.h"
 #include <unistd.h>
@@ -16,25 +22,16 @@
 void proc1()
 {
      rvm_t rvm;
-     trans_t trans;
-     char* segs[5];
+     trans_t trans1, trasn2;
+     char* segs[1];
 
      rvm = rvm_init("rvm_segments");
      //rvm_destroy(rvm, "testseg");
      segs[0] = (char *) rvm_map(rvm, "page0", 10000);
-     segs[1] = (char *) rvm_map(rvm, "page1", 10000);
-     segs[2] = (char *) rvm_map(rvm, "page2", 10000);
-     segs[3] = (char *) rvm_map(rvm, "page3", 10000);
-     segs[4] = (char *) rvm_map(rvm, "page4", 10000);
 
+     trans1 = rvm_begin_trans(rvm, 1, (void **) segs);
+     trans1 = rvm_begin_trans(rvm, 1, (void **) segs);
 
-     trans = rvm_begin_trans(rvm, 5, (void **) segs);
-
-     for (int i=0;i < 5;i++)
-     {
-         rvm_about_to_modify(trans, segs[i], OFFSET1*i, 100);
-         sprintf(segs[i]+OFFSET1*i, TEST_STRING);
-     }
 
   /*   rvm_about_to_modify(trans, segs[1], OFFSET1, 100);
      sprintf(segs[1], TEST_STRING);*/
@@ -57,9 +54,8 @@ void proc1()
      sprintf(segs[0]+OFFSET2, TEST_STRING);
 */
 
-     rvm_commit_trans(trans);
+  //   rvm_commit_trans(trans);
 //     rvm_commit_trans_heavy(trans);
-     printf("\n done proc 1 \n");
      abort();
 }
 
@@ -111,7 +107,7 @@ int main(int argc, char **argv)
 
      waitpid(pid, NULL, 0);
 
-    proc2();
+   // proc2();
 
      return 0;
 }

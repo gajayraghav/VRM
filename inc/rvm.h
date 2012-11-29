@@ -29,6 +29,7 @@ struct memSegment {
   int Segmentsize;	 		// the size of the segment.
   int dirty; 				// yet to be written to disk
   int mapped; 				// to check it is mapped or not. remapping will lead to an abort
+  int transaction; 			// to check if the segment is used in a transaction
 };
 typedef memSegment memSeg;
 
@@ -40,7 +41,7 @@ struct rvm_details
    long int storage_size; 		// not sure if we need this.
    int memSeg_count; 			// current segs may be. 20 memsegs is our restriction
    FILE * flog;		 		// log file. flushed at commit.
-   FILE * ftrace; 			// overall log file. never flushed
+   //FILE * ftrace; 			// overall log file. never flushed
 };
 typedef rvm_details* rvm_t;
 
@@ -79,6 +80,8 @@ void 	rvm_truncate_log(rvm_t rvm);
 
 int 	write_log(FILE *fp, logitem log);
 int 	read_log(rvm_t rvm, vector <logitem> log);
-int 	TRACE(rvm_t rvm,  const char * trace_stm);
+int 	TRACE(string trace_stm);
+void write_to_tracefile();
+void write_to_screen();
 
 #endif /* RVM_H_ */
