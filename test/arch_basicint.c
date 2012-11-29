@@ -24,7 +24,7 @@ void proc1() {
 	rvm = rvm_init("rvm_segments");
 	rvm_destroy(rvm, "testseg");
 	segs[0] = (int *) rvm_map(rvm, "testseg", 10000);
-	segs[1]=(int *)((byte_t *)segs[0] + OFFSET2);
+	segs[1]=(int *)((char *)segs[0] + OFFSET2);
 
 	trans = rvm_begin_trans(rvm, 1, (void **) segs);
 
@@ -47,7 +47,7 @@ void proc2() {
 	int* segs[2];
 	rvm = rvm_init("rvm_segments");
 	segs[0] = (int *) rvm_map(rvm, "testseg", 10000);
-	segs[1]=(int *)((byte_t *)segs[0] + OFFSET2);
+	segs[1]=(int *)((char *)segs[0] + OFFSET2);
 
 	printf("Read `%d` and `%d`\n",*segs[0],*segs[1]);
 	//*(segs[0]) = a;
