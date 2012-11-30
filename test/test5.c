@@ -30,7 +30,7 @@ void proc1()
      segs[0] = (char *) rvm_map(rvm, "page0", 10000);
 
      trans1 = rvm_begin_trans(rvm, 1, (void **) segs);
-     trans1 = rvm_begin_trans(rvm, 1, (void **) segs);
+     trans2 = rvm_begin_trans(rvm, 1, (void **) segs);
 
 
   /*   rvm_about_to_modify(trans, segs[1], OFFSET1, 100);

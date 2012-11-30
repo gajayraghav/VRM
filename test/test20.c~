@@ -44,7 +44,7 @@ void proc1()
      {
     	 for(int j=0; j< modify; j++)
     	 {
-             rvm_about_to_modify(trans, segs[i], OFFSET1*i +j*10 , 1000);
+             rvm_about_to_modify(trans, segs[i], OFFSET1*i +j*10 , j*10 + 10);
              sprintf(segs[i]+OFFSET1*i +j*10, segname[i]);
 
     	 }
