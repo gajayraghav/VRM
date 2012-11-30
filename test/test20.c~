@@ -52,7 +52,7 @@ void proc1()
 
      struct timeval start, temp, stop;
      gettimeofday(&start, NULL);
-     rvm_commit_trans_heavy(trans); // _heavy
+     rvm_commit_trans(trans); // _heavy
      gettimeofday(&stop, NULL);
      long timediff = subtracttime( &start,&stop);
 

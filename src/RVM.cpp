@@ -32,7 +32,7 @@ rvm_t rvm_init(const char *directory)
 	struct stat st = {0};
 	TRACE("<<<<<\t rvm_init");
 	toScreen = 0;
-	write_to_screen();
+	write_to_tracefile();
 	int truncate_flag = 0;
 	if (stat(directory, &st) == -1) {
 
@@ -57,7 +57,7 @@ rvm_t rvm_init(const char *directory)
 	else
 	{
 		TRACE("rvm_init: Directory already exists");
-		printf("\n rvm_init: Directory already exists \n");
+		// ajay printf("\n rvm_init: Directory already exists \n");
 		rvm->backingStore = directory;
 		rvm->backingStore.append("/");
 		rvm->storage_size = 0;
@@ -138,7 +138,7 @@ rvm_t rvm_init(const char *directory)
 	{
 		TRACE("created the log & trace file");
 		TRACE("rvm_init \t >>>>>");
-		printf("\n created the log & trace file \n");
+		// ajay printf("\n created the log & trace file \n");
 		if(truncate_flag != 0)
 			rvm_truncate_log(rvm);
 		return rvm;
@@ -268,7 +268,7 @@ void* rvm_map(rvm_t rvm, const char * segname, int size_to_create)
 		}
 	}
 	TRACE("rvm_map: Returning void* 0 ");
-	printf("\n rvm_map: returning void* 0 \n");
+	// ajay printf("\n rvm_map: returning void* 0 \n");
 	TRACE("rvm_map \t >>>>> 2 ");
 
 	return (void*) 0;
@@ -301,7 +301,7 @@ void rvm_unmap(rvm_t rvm, void *segbase)
 		}
 		else
 		{
-			printf("\n need to unmap segment %s",rvm->memSegs[segment_index]->segName);
+			// ajay printf("\n need to unmap segment %s",rvm->memSegs[segment_index]->segName);
 			TRACE(string("\need to unmap segment ") +rvm->memSegs[segment_index]->segName );
 			rvm->memSegs[segment_index]->mapped = 0;
 			fclose(rvm->memSegs[segment_index]->fsegment);
@@ -333,7 +333,7 @@ void rvm_destroy(rvm_t rvm, const char *segname)
 	bool found = false;
 	for (segment_index = 0; segment_index < rvm->memSeg_count; segment_index++) {
 		if (!strcmp(rvm->memSegs[segment_index]->segName, segname)) {
-			printf("\n found %s to destroy\n", segname);
+			// ajay printf("\n found %s to destroy\n", segname);
 			TRACE(string("rvm_destroy: found ")+ rvm->memSegs[segment_index]->segName +string(" to destroy") );
 			found = true;
 			break;
@@ -360,7 +360,7 @@ void rvm_destroy(rvm_t rvm, const char *segname)
 			char tmp_str[20];
 			sprintf(tmp_str, "%d",rvm->memSeg_count );
 			TRACE("\n destroyed segment "+  string(tmp_str));
-			printf("\nrvm_destroy: destroyed segment, %d \n", (int) rvm->memSeg_count);
+			// ajay printf("\nrvm_destroy: destroyed segment, %d \n", (int) rvm->memSeg_count);
 		}
 		else
 		{
@@ -409,7 +409,7 @@ trans_t rvm_begin_trans(rvm_t rvm, int segcount, void **segbases)
 	if (SegsFound != segcount){
 		TRACE("rvm_begin_trans: could not lock all required memory segments");
 		TRACE("rvm_begin_trans \t >>>>>");
-		printf("could not find all the required memory segments");
+		// ajay printf("could not find all the required memory segments");
 		transactionCount--;
 		return (trans_t)-1;
 	}
@@ -427,7 +427,7 @@ void rvm_about_to_modify(trans_t tid, void *segbase, int offset, int size)
 	if (activeTransaction->segBases.find(segbase) == activeTransaction->segBases.end()){
 		TRACE("rvm_about_to_modify: couldn't find the seg base. aborting... ");
 		TRACE("rvm_about_to_modify \t <<<<<");
-		printf("\n couldn't find the seg base \n");
+		// ajay printf("\n couldn't find the seg base \n");
 		abort();
 	}
 	TRACE(string("rvm_about_to_modify: found ") + activeTransaction->segBases[segbase]->segName);
@@ -482,7 +482,7 @@ void rvm_commit_trans(trans_t tid)
 	while (it != activeTransaction->action.end()){
 		if ((*it)->segmentinProcess->dirty > 0){
 			TRACE(string("rvm_commit_trans: write commit log for ") +(*it)->segmentinProcess->segName );
-			printf("\n write commit log for %s \n",(*it)->segmentinProcess->segName );
+			// ajay printf("\n write commit log for %s \n",(*it)->segmentinProcess->segName );
 			if (activeTransaction->rvm->flog != NULL)
 			{
 				(*it)->segmentinProcess->logItem.offset  = (*it)->offset;
@@ -493,7 +493,7 @@ void rvm_commit_trans(trans_t tid)
 				if (fprintf(activeTransaction->rvm->flog, "commit/%s/%d/%d/", (*it)->segmentinProcess->segName, (*it)->offset, (*it)->transactionSize ) < 0){
 					TRACE("rvm_commit_trans: failure to log");
 					TRACE("rvm_commit_trans \t >>>>>");
-					printf("\n rvm_commit_trans: failure to log \n");
+					// ajay printf("\n rvm_commit_trans: failure to log \n");
 					abort();
 				}
 			}
@@ -537,6 +537,70 @@ void rvm_commit_trans_heavy(trans_t tid)
 	vector<transItem *>::iterator it = activeTransaction->action.begin();
 
 	while (it != activeTransaction->action.end()){
+		if ((*it)->segmentinProcess->dirty > 0){
+	//		TRACE(string("rvm_commit_trans: write commit log for ") +(*it)->segmentinProcess->segName );
+			// ajay printf("\n write commit log for %s \n",(*it)->segmentinProcess->segName );
+/*
+			if (activeTransaction->rvm->flog != NULL)
+			{
+				(*it)->segmentinProcess->logItem.offset  = (*it)->offset;
+				(*it)->segmentinProcess->logItem.size = (*it)->transactionSize;
+				(*it)->segmentinProcess->logItem.segName= (*it)->segmentinProcess->segName;
+				(*it)->segmentinProcess->logItem.data = (*it)->segmentinProcess->segAddr+(*it)->offset;
+				(*it)->transactionType = COMMIT;
+				if (fprintf(activeTransaction->rvm->flog, "commit/%s/%d/%d/", (*it)->segmentinProcess->segName, (*it)->offset, (*it)->transactionSize ) < 0){
+					TRACE("rvm_commit_trans: failure to log");
+					TRACE("rvm_commit_trans \t >>>>>");
+					// ajay printf("\n rvm_commit_trans: failure to log \n");
+					abort();
+				}
+			}
+			else
+			{
+				TRACE("rvm_commit_trans: log is null.. abort...");
+				TRACE("rvm_commit_trans \t >>>>>");
+				abort();
+			}
+*/
+/*
+			fwrite((void*)((char*)(*it)->segmentinProcess->segAddr + (*it)->offset),
+					1,
+					(*it)->transactionSize,
+					activeTransaction->rvm->flog);
+			fprintf(activeTransaction->rvm->flog, "\n");
+*/
+			(*it)->segmentinProcess->dirty--;
+			if((*it)->segmentinProcess->dirty == 0)
+			{
+				(*it)->segmentinProcess->transaction =0 ;
+			}
+					rewind((*it)->segmentinProcess->fsegment);
+					lseek(fileno((*it)->segmentinProcess->fsegment), (*it)->offset, SEEK_CUR);
+					fwrite((*it)->segmentinProcess->segAddr + (*it)->offset,
+					1,
+					(*it)->transactionSize,
+					(*it)->segmentinProcess->fsegment);
+
+			(*it)->aboutToModify = NULL;
+		}
+		delete *it;
+		it = activeTransaction->action.erase(it);
+	}
+	//	rvm_truncate_log(activeTransaction->rvm);
+	TRACE("rvm_commit_trans_heavy \t >>>>>");
+	return;
+
+}
+
+
+/*
+void rvm_commit_trans_heavy(trans_t tid)
+{
+	TRACE("<<<<< \t rvm_commit_trans_heavy");
+	trans_s activeTransaction = transactionGlobal[tid];
+	vector<transItem *>::iterator it = activeTransaction->action.begin();
+
+	while (it != activeTransaction->action.end()){
 		if ((*it)->segmentinProcess->dirty){
 			(*it)->segmentinProcess->dirty = 0;
 			if((*it)->segmentinProcess->dirty == 0)
@@ -554,6 +618,7 @@ void rvm_commit_trans_heavy(trans_t tid)
 	return;
 
 }
+*/
 
 void rvm_abort_trans(trans_t tid)
 {
@@ -571,7 +636,7 @@ void rvm_abort_trans(trans_t tid)
 					activeTransaction->rvm->flog);
 			fprintf(activeTransaction->rvm->flog, "\n");
 			TRACE(string("rvm_abort_trans: bkp-")+(*it)->aboutToModify );
-			printf("bkp - %s\n", (*it)->aboutToModify);	
+			// ajay printf("bkp - %s\n", (*it)->aboutToModify);
 			memcpy((*it)->segmentinProcess->segAddr+(*it)->offset,(*it)->aboutToModify, (*it)->transactionSize);
 			(*it)->segmentinProcess->dirty--;
 			if((*it)->segmentinProcess->dirty == 0)
@@ -606,10 +671,10 @@ void rvm_truncate_log(rvm_t rvm)
 	while(fgets(line, 20000, rvm->flog) != NULL)
 	{
 		newindex = 0;
-		//printf("lines = %s\n", line);
+		//printf("\n length = %d, %s\n", strlen(line));
 		logitem newLogItem;
 		token = strtok(line, "/");
-		printf("token %s\n", token);
+		// ajay printf("token %s\n", token);
 		if(strcmp(token, "commit") == 0)
 		{
 			tid = COMMIT;
@@ -622,12 +687,12 @@ void rvm_truncate_log(rvm_t rvm)
 			{
 				if(!strcmp(segName, rvm->memSegs[newindex]->segName))
 				{
-					printf("found% \n");
+					// ajay printf("found% \n");
 					fp = rvm->memSegs[newindex]->fsegment;
 					break;
 				}			
 			}	
-			printf("segname = %s %d %d %s %d\n", segName, offset, size, data, fileno(fp));
+			// ajay printf("segname = %s %d %d %s %d\n", segName, offset, size, data, fileno(fp));
 			rewind(rvm->memSegs[newindex]->fsegment);
 			lseek(fileno(rvm->memSegs[newindex]->fsegment), offset, SEEK_CUR);
 			fwrite(data,
@@ -643,7 +708,7 @@ void rvm_truncate_log(rvm_t rvm)
 		}
 		memset(line, '\0', 20000);
 	}
-	printf("commit %d abort %d\n", commit_counter, abort_counter);
+	// ajay printf("commit %d abort %d\n", commit_counter, abort_counter);
 	
 	FILE *flog = fopen((rvm->backingStore+string("transaction.log")).c_str(), "w");
 	vector<string>::iterator linesit = abortLines.begin();
