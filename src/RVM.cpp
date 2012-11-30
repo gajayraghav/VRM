@@ -32,7 +32,7 @@ rvm_t rvm_init(const char *directory)
 	struct stat st = {0};
 	TRACE("<<<<<\t rvm_init");
 	toScreen = 0;
-	write_to_tracefile();
+	write_to_screen();
 	int truncate_flag = 0;
 	if (stat(directory, &st) == -1) {
 
@@ -63,7 +63,7 @@ rvm_t rvm_init(const char *directory)
 		rvm->storage_size = 0;
 		rvm->memSeg_count = 0;
 		rvm->flog = fopen((rvm->backingStore+string("transaction.log")).c_str(), "r+");
-		fTracePtr = fopen((rvm->backingStore+string("trace.log")).c_str(), "r+");
+		fTracePtr = fopen((rvm->backingStore+string("trace.log")).c_str(), "w");
 		//printf("\n %s",(rvm->backingStore+string("trace.log")).c_str() );
 		fseek(rvm->flog, 0, SEEK_END);
                 int size = ftell(rvm->flog);
@@ -354,8 +354,6 @@ void rvm_destroy(rvm_t rvm, const char *segname)
 			if (rvm->memSegs[segment_index]->fsegment != NULL)
 			{
 				TRACE("File is open elsewhere");
-				TRACE("rvm_destroy \t >>>>>");
-				perror("File is open elsewhere");
 				fclose(rvm->memSegs[segment_index]->fsegment);
 			}
 			rvm->memSegs[segment_index]->fsegment = NULL;
@@ -363,6 +361,7 @@ void rvm_destroy(rvm_t rvm, const char *segname)
 			rvm->memSegs[segment_index]->Segmentsize = 0;
 			rvm->memSeg_count--;
 			unlink((rvm->backingStore + string(segname)+".txt").c_str());
+			memset(rvm->memSegs[segment_index]->segName, 0, 20);
 			char tmp_str[20];
 			sprintf(tmp_str, "%d",rvm->memSeg_count );
 			TRACE("\n destroyed segment "+  string(tmp_str));
