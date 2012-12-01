@@ -24,10 +24,13 @@ OVERLAP=		test/overlap.c
 MULTIABORT=	test/multi-abort.c
 TRUNCATE=	test/truncate.c
 INC =		inc/
+TEST6=		test/test6.c
+EXPAND=		test/expand.c
 TARGET =	RVM
 
 
-all:	$(LIB) $(BASIC)
+whole:	$(LIB) abort multi multiabort test1 test2 basic test3 test4 test5 arch1 arch2 sri1 sri2 overlap test6 expand
+
 basic:	$(INC) $(BASIC) $(LIB)
 	$(CXXFLAGS) basic -I $(INC) $(BASIC) $(LIB)
 abort:	$(INC) $(ABORT) $(LIB)
@@ -48,6 +51,8 @@ test4:	$(INC) $(TEST4) $(LIB)
 	$(CXXFLAGS) test4 -I $(INC) $(TEST4) $(LIB)
 test5:	$(INC) $(TEST5) $(LIB)
 	$(CXXFLAGS) test5 -I $(INC) $(TEST5) $(LIB)
+test6:	$(INC) $(TEST6) $(LIB)
+	$(CXXFLAGS) test6 -I $(INC) $(TEST6) $(LIB)
 test20:	$(INC) $(TEST20) $(LIB)
 	$(CXXFLAGS) test20 -I $(INC) $(TEST20) $(LIB)
 
@@ -69,6 +74,8 @@ arch2:	$(INC) $(ARCH2) $(LIB)
 overlap:	$(INC) $(OVERLAP) $(LIB)
 	$(CXXFLAGS) overlap -I $(INC) $(OVERLAP) $(LIB)
 	
+expand:	$(INC) $(EXPAND) $(LIB)
+	$(CXXFLAGS) expand -I $(INC) $(EXPAND) $(LIB)	
 
 $(LIB):	$(OBJ)
 	$(LIBFLAGS) $(LIB) $(OBJ)	
@@ -77,3 +84,6 @@ $(OBJ):	$(LIBS) $(SRC)
 	mv *.o $(OBJ) 	
 clean:
 	rm -f $(OBJ) $(TARGET) $(LIB)
+	rm -f abort multi multiabort test1 test2 basic test3 test4 test5 arch1 arch2 sri1 sri2 overlap test6 expand
+	rm -rf rvm_segments/
+	clear
